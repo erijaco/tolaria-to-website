@@ -8,6 +8,12 @@
     "node": ">=22.13.0"
   },
   "description": "Builds an offline-capable static website from a Tolaria vault of Markdown notes.",
+  "license": "MIT",
+  "author": "Eric Jacobsen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erijaco/tolaria-to-website"
+  },
   "scripts": {
     "site:build": "tsx src/cli.ts build",
     "typecheck": "tsc --noEmit"

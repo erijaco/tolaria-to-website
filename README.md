@@ -1,5 +1,7 @@
 # Tolaria to Website
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Builds an offline-capable static website from a [Tolaria](https://tolaria.md) vault of
 Markdown notes: resolves `[[wikilinks]]`, computes relationships/backlinks, groups notes
 by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), copies
@@ -83,6 +85,11 @@ images — no font/CDN dependency in the built site. Their SVG data is copied in
 `src/icons.ts` rather than depended on via npm, so full license text (Lucide's ISC
 license, plus the underlying MIT license for icons derived from Feather Icons) is
 reproduced in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+[MIT](LICENSE) — the vault content in `vault/` is sample data for this repo, not
+covered by the license (it's just example input for the tool).
 
 ## Limitations / not yet implemented
 
