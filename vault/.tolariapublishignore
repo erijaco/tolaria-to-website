@@ -1,0 +1,4 @@
+# gitignore-style patterns. Notes/attachments matching these are excluded from the
+# published site, in addition to any note with `private: true`, `draft: true`, or
+# `publish: false` in its frontmatter.
+scratch/

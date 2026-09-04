@@ -1,0 +1,57 @@
+name: Publish vault site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm run typecheck
+
+      - name: Build site
+        run: pnpm run site:build
+
+      - name: Publish to public repo
+        env:
+          DEPLOY_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          TARGET_REPO: ${{ vars.PUBLIC_REPO }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_TOKEN:-}" ]; then
+            echo "Missing secret PUBLIC_REPO_TOKEN (Settings > Secrets and variables > Actions)." >&2
+            exit 1
+          fi
+          if [ -z "${TARGET_REPO:-}" ]; then
+            echo "Missing repository variable PUBLIC_REPO (e.g. 'your-org/your-public-site')." >&2
+            exit 1
+          fi
+          cd _site
+          git init -q
+          git checkout -q -b main
+          git config user.name "tolaria-publish-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git"
+          git add -A
+          git commit -q -m "Publish site $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push --force origin main

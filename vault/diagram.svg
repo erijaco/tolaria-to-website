@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+  <rect width="200" height="100" fill="#f0f4ff"/>
+  <text x="100" y="55" font-family="sans-serif" font-size="14" text-anchor="middle" fill="#4f8ef7">
+    architecture diagram
+  </text>
+</svg>
