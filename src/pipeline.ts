@@ -8,6 +8,7 @@ import type { Root } from "mdast";
 import type { Root as HastRoot } from "hast";
 import { resolveWikilinks } from "./wikilinks.js";
 import { rewriteLocalAssetUrls } from "./rewriteAssets.js";
+import { transformCallouts } from "./callouts.js";
 import type { VaultIndex, NoteFile } from "./types.js";
 
 const parser = unified().use(remarkParse).use(remarkGfm);
@@ -27,6 +28,7 @@ export function parseAndResolve(
   pathOptions: RenderPathOptions = {}
 ): Root {
   const tree = parser.parse(note.bodyMarkdown) as Root;
+  transformCallouts(tree);
   rewriteLocalAssetUrls(tree, note.relPath, pathOptions.assetsPrefix);
   resolveWikilinks(tree, index, note.slug, publishedOnly, pathOptions.notesPrefix);
   return tree;
