@@ -1,3 +1,5 @@
+import { iconMaskUrl } from "./icons.js";
+
 export const STYLE_CSS = `
 :root {
   color-scheme: light dark;
@@ -36,8 +38,26 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   border-bottom: 1px solid var(--border);
 }
 .page-header h1 { margin: 0; font-size: 1.1rem; }
-.back-link { color: var(--muted); text-decoration: none; }
-.back-link:hover { text-decoration: underline; }
+.header-nav { display: flex; align-items: center; gap: 0.9rem; }
+.back-link, .home-link { color: var(--muted); text-decoration: none; }
+.back-link:hover, .home-link:hover { text-decoration: underline; }
+.home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
+.home-link::before {
+  content: "";
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("home")};
+  mask-image: ${iconMaskUrl("home")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 h1, h2, h3 { line-height: 1.25; }
 a { color: var(--accent); }
 .type-badge {
@@ -113,9 +133,20 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
   color: var(--callout-color, var(--accent));
 }
 .note-body .callout-title::before {
-  content: "\\1F4AC";
-  font-size: 0.95em;
-  line-height: 1;
+  content: "";
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("generic")};
+  mask-image: ${iconMaskUrl("generic")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 .note-body .callout-content { margin-top: 0.4rem; font-size: 0.95rem; }
 .note-body .callout-content > *:first-child { margin-top: 0; }
@@ -125,31 +156,31 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
 .note-body details.callout > summary.callout-title::-webkit-details-marker { display: none; }
 
 .note-body .callout-note { --callout-color: #448aff; --callout-bg: rgba(68, 138, 255, 0.08); }
-.note-body .callout-note > .callout-title::before { content: "\\1F4DD"; }
+.note-body .callout-note > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("note")}; mask-image: ${iconMaskUrl("note")}; }
 .note-body .callout-abstract { --callout-color: #00bcd4; --callout-bg: rgba(0, 188, 212, 0.08); }
-.note-body .callout-abstract > .callout-title::before { content: "\\1F4CB"; }
+.note-body .callout-abstract > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("abstract")}; mask-image: ${iconMaskUrl("abstract")}; }
 .note-body .callout-info { --callout-color: #2196f3; --callout-bg: rgba(33, 150, 243, 0.08); }
-.note-body .callout-info > .callout-title::before { content: "\\2139\\FE0F"; }
+.note-body .callout-info > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("info")}; mask-image: ${iconMaskUrl("info")}; }
 .note-body .callout-todo { --callout-color: #0091ea; --callout-bg: rgba(0, 145, 234, 0.08); }
-.note-body .callout-todo > .callout-title::before { content: "\\2611\\FE0F"; }
+.note-body .callout-todo > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("todo")}; mask-image: ${iconMaskUrl("todo")}; }
 .note-body .callout-tip { --callout-color: #00bfa5; --callout-bg: rgba(0, 191, 165, 0.08); }
-.note-body .callout-tip > .callout-title::before { content: "\\1F4A1"; }
+.note-body .callout-tip > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("tip")}; mask-image: ${iconMaskUrl("tip")}; }
 .note-body .callout-success { --callout-color: #43a047; --callout-bg: rgba(67, 160, 71, 0.08); }
-.note-body .callout-success > .callout-title::before { content: "\\2705"; }
+.note-body .callout-success > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("success")}; mask-image: ${iconMaskUrl("success")}; }
 .note-body .callout-question { --callout-color: #ff9800; --callout-bg: rgba(255, 152, 0, 0.08); }
-.note-body .callout-question > .callout-title::before { content: "\\2753"; }
+.note-body .callout-question > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("question")}; mask-image: ${iconMaskUrl("question")}; }
 .note-body .callout-warning { --callout-color: #f4511e; --callout-bg: rgba(244, 81, 30, 0.08); }
-.note-body .callout-warning > .callout-title::before { content: "\\26A0\\FE0F"; }
+.note-body .callout-warning > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("warning")}; mask-image: ${iconMaskUrl("warning")}; }
 .note-body .callout-failure { --callout-color: #ef5350; --callout-bg: rgba(239, 83, 80, 0.08); }
-.note-body .callout-failure > .callout-title::before { content: "\\274C"; }
+.note-body .callout-failure > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("failure")}; mask-image: ${iconMaskUrl("failure")}; }
 .note-body .callout-danger { --callout-color: #d32f2f; --callout-bg: rgba(211, 47, 47, 0.08); }
-.note-body .callout-danger > .callout-title::before { content: "\\1F525"; }
+.note-body .callout-danger > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("danger")}; mask-image: ${iconMaskUrl("danger")}; }
 .note-body .callout-bug { --callout-color: #e91e63; --callout-bg: rgba(233, 30, 99, 0.08); }
-.note-body .callout-bug > .callout-title::before { content: "\\1F41B"; }
+.note-body .callout-bug > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("bug")}; mask-image: ${iconMaskUrl("bug")}; }
 .note-body .callout-example { --callout-color: #7c4dff; --callout-bg: rgba(124, 77, 255, 0.08); }
-.note-body .callout-example > .callout-title::before { content: "\\1F4CE"; }
+.note-body .callout-example > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("example")}; mask-image: ${iconMaskUrl("example")}; }
 .note-body .callout-quote { --callout-color: #9e9e9e; --callout-bg: rgba(158, 158, 158, 0.08); }
-.note-body .callout-quote > .callout-title::before { content: "\\1F4AC"; }
+.note-body .callout-quote > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("quote")}; mask-image: ${iconMaskUrl("quote")}; }
 
 section.relation-group, section.backlinks { margin-top: 2rem; }
 section.relation-group h3, section.backlinks h3 {

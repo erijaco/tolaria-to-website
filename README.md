@@ -70,6 +70,20 @@ Setup:
 The workflow force-pushes `main` in the public repo each run, since it's a generated
 artifact, not something meant to be hand-edited or carry history.
 
+## Credits
+
+Built on [commander](https://github.com/tj/commander.js), [gray-matter](https://github.com/jonschlinkert/gray-matter),
+[ignore](https://github.com/kaelzhang/node-ignore), [prompts](https://github.com/terkelg/prompts),
+[fs-extra](https://github.com/jprichardson/node-fs-extra), and the [unified](https://unifiedjs.com)/remark/rehype
+ecosystem for Markdown processing — see `package.json` for the full list; each carries
+its own (permissive: MIT/ISC/BSD/Apache-2.0) license via npm.
+
+Callout and header icons are from [Lucide](https://lucide.dev), inlined as CSS mask
+images — no font/CDN dependency in the built site. Their SVG data is copied into
+`src/icons.ts` rather than depended on via npm, so full license text (Lucide's ISC
+license, plus the underlying MIT license for icons derived from Feather Icons) is
+reproduced in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Limitations / not yet implemented
 
 - `_display: sheet` spreadsheet notes render as plain Markdown, not as tables.

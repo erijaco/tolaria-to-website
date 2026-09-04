@@ -117,6 +117,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       backlinks,
       linkIndex: index,
       backHref: `../${navFilename}`,
+      homeHref: homeSlug ? "../index.html" : undefined,
     });
 
     await fs.promises.writeFile(

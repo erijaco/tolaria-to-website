@@ -41,6 +41,8 @@ export function renderNotePage(args: {
   backHref?: string;
   backLabel?: string;
   notesPrefix?: string;
+  /** When a note has been picked as the home page, this links directly back to it. */
+  homeHref?: string;
 }): string {
   const {
     note,
@@ -53,6 +55,7 @@ export function renderNotePage(args: {
     backHref = "../index.html",
     backLabel = "All notes",
     notesPrefix = "",
+    homeHref,
   } = args;
 
   const propRows = Object.entries(note.frontmatter)
@@ -109,7 +112,10 @@ export function renderNotePage(args: {
 </head>
 <body>
 <header class="page-header">
-  <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
+  <nav class="header-nav">
+    <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
+    ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
+  </nav>
   ${badge}
 </header>
 <main>
@@ -171,7 +177,7 @@ export function renderIndexPage(args: {
 </head>
 <body>
 <header class="page-header">
-  ${homeHref ? `<a class="back-link" href="${homeHref}">&larr; Home</a>` : `<h1>Vault</h1>`}
+  ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : `<h1>Vault</h1>`}
   <input id="search-input" type="search" placeholder="Search notes...">
 </header>
 <main>
