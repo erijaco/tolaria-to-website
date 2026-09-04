@@ -72,6 +72,25 @@ section.relation-group h3, section.backlinks h3 {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+details.frontmatter {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+details.frontmatter summary {
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  user-select: none;
+}
+details.frontmatter summary:hover { color: var(--fg); }
+details.frontmatter table.properties {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 .nav-group { margin-bottom: 1.5rem; }
 .nav-group h2 { font-size: 0.95rem; color: var(--muted); }
 .nav-group ul, section.relation-group ul, section.backlinks ul, .search-results { list-style: none; padding: 0; margin: 0; }

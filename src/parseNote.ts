@@ -15,6 +15,9 @@ export function parseNote(vaultDir: string, absPath: string): NoteFile {
 
   const h1Match = H1_RE.exec(parsed.content);
   const title = h1Match ? h1Match[1].trim() : path.basename(slug);
+  const bodyMarkdown = h1Match
+    ? parsed.content.slice(0, h1Match.index) + parsed.content.slice(h1Match.index + h1Match[0].length)
+    : parsed.content;
 
   const frontmatter = parsed.data ?? {};
   const typeName = typeof frontmatter.type === "string" ? frontmatter.type : undefined;
@@ -27,7 +30,7 @@ export function parseNote(vaultDir: string, absPath: string): NoteFile {
     frontmatter,
     title,
     titleKey: title.toLowerCase(),
-    bodyMarkdown: parsed.content,
+    bodyMarkdown,
     typeName,
     isTypeDoc: typeName === "Type",
   };

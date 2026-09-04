@@ -36,9 +36,21 @@ pnpm run site:build           # vault/ -> _site/
 open _site/index.html         # or just double-click it; no server needed
 ```
 
-Options: `pnpm run site:build -- --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile`.
+Run `pnpm run site:build` with no flags in an interactive terminal and it will prompt
+for the source vault folder, the destination folder, and (optionally) a note to use as
+the home page — nothing to memorize for a one-off run.
 
-## CI/CD: publishing to a separate public repo
+Options (skip the prompts by passing flags, e.g. in scripts or CI):
+`pnpm run site:build -- --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile --home "Note Name"`.
+
+- `--home <note>`: slug, filename, or title of a note to render as the site's
+  `index.html`, in place of the auto-generated nav/search page (which then moves to
+  `notes.html`, linked from the home page's header).
+
+## CI/CD: publishing to a separate public repo (optional)
+
+The workflow below is one way to publish the built site — entirely optional, and
+independent of the local `site:build` command, which works standalone with no CI setup.
 
 `.github/workflows/publish.yml` builds the site on every push to `main` and pushes the
 contents of `_site/` to a **different, public** repository — the vault source (which may

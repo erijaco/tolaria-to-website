@@ -1,7 +1,7 @@
 import { findAndReplace } from "mdast-util-find-and-replace";
 import type { Root } from "mdast";
 import type { VaultIndex } from "./types.js";
-import { outputName } from "./outputName.js";
+import { notesHref } from "./outputName.js";
 
 const WIKILINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g;
 
@@ -17,7 +17,8 @@ export function resolveWikilinks(
   tree: Root,
   index: VaultIndex,
   currentSlug: string,
-  publishedOnly: boolean
+  publishedOnly: boolean,
+  notesPrefix = ""
 ): Root {
   findAndReplace(tree, [
     [
@@ -40,7 +41,7 @@ export function resolveWikilinks(
 
         return {
           type: "link",
-          url: `${outputName(targetSlug)}.html`,
+          url: notesHref(targetSlug, notesPrefix),
           children: [{ type: "text", value: alias ?? target }],
         };
       },

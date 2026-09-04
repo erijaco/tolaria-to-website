@@ -36,8 +36,24 @@ export function renderNotePage(args: {
   relationships: { field: string; target: NoteFile }[];
   backlinks: NoteFile[];
   linkIndex: Pick<VaultIndex, "byKey" | "published">;
+  /** Path overrides for rendering this note somewhere other than its default notes/ location. */
+  cssHref?: string;
+  backHref?: string;
+  backLabel?: string;
+  notesPrefix?: string;
 }): string {
-  const { note, bodyHtml, typeDef, relationships, backlinks, linkIndex } = args;
+  const {
+    note,
+    bodyHtml,
+    typeDef,
+    relationships,
+    backlinks,
+    linkIndex,
+    cssHref = "../static/style.css",
+    backHref = "../index.html",
+    backLabel = "All notes",
+    notesPrefix = "",
+  } = args;
 
   const propRows = Object.entries(note.frontmatter)
     .filter(([k]) => !k.startsWith("_") && k !== "type")
@@ -58,7 +74,7 @@ export function renderNotePage(args: {
       <section class="relation-group">
         <h3>${escapeHtml(field)}</h3>
         <ul>${targets
-          .map((t) => `<li><a href="${notesHref(t.slug)}">${escapeHtml(t.title)}</a></li>`)
+          .map((t) => `<li><a href="${notesHref(t.slug, notesPrefix)}">${escapeHtml(t.title)}</a></li>`)
           .join("")}</ul>
       </section>`
     )
@@ -66,8 +82,15 @@ export function renderNotePage(args: {
 
   const backlinksHtml = backlinks.length
     ? `<section class="backlinks"><h3>Linked from</h3><ul>${backlinks
-        .map((b) => `<li><a href="${notesHref(b.slug)}">${escapeHtml(b.title)}</a></li>`)
+        .map((b) => `<li><a href="${notesHref(b.slug, notesPrefix)}">${escapeHtml(b.title)}</a></li>`)
         .join("")}</ul></section>`
+    : "";
+
+  const frontmatterHtml = propRows
+    ? `<details class="frontmatter">
+        <summary>Frontmatter</summary>
+        <table class="properties"><tbody>${propRows}</tbody></table>
+      </details>`
     : "";
 
   const badge = typeDef
@@ -82,19 +105,19 @@ export function renderNotePage(args: {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(note.title)}</title>
-<link rel="stylesheet" href="../static/style.css">
+<link rel="stylesheet" href="${cssHref}">
 </head>
 <body>
 <header class="page-header">
-  <a class="back-link" href="../index.html">&larr; All notes</a>
+  <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
   ${badge}
 </header>
 <main>
   <h1>${escapeHtml(note.title)}</h1>
-  ${propRows ? `<table class="properties"><tbody>${propRows}</tbody></table>` : ""}
   <article class="note-body">${bodyHtml}</article>
   ${relSections}
   ${backlinksHtml}
+  ${frontmatterHtml}
 </main>
 </body>
 </html>
@@ -104,8 +127,10 @@ export function renderNotePage(args: {
 export function renderIndexPage(args: {
   notes: NoteFile[];
   types: Map<string, TypeDef>;
+  /** When a note has been picked as the home page, this points back to it. */
+  homeHref?: string;
 }): string {
-  const { notes, types } = args;
+  const { notes, types, homeHref } = args;
 
   const groups = new Map<string, NoteFile[]>();
   for (const note of notes) {
@@ -129,7 +154,7 @@ export function renderIndexPage(args: {
       const items = groups
         .get(key)!
         .sort((a, b) => a.title.localeCompare(b.title))
-        .map((n) => `<li><a href="notes/${notesHref(n.slug)}">${escapeHtml(n.title)}</a></li>`)
+        .map((n) => `<li><a href="${notesHref(n.slug, "notes/")}">${escapeHtml(n.title)}</a></li>`)
         .join("");
       return `<section class="nav-group"><h2>${escapeHtml(label)}</h2><ul>${items}</ul></section>`;
     })
@@ -146,7 +171,7 @@ export function renderIndexPage(args: {
 </head>
 <body>
 <header class="page-header">
-  <h1>Vault</h1>
+  ${homeHref ? `<a class="back-link" href="${homeHref}">&larr; Home</a>` : `<h1>Vault</h1>`}
   <input id="search-input" type="search" placeholder="Search notes...">
 </header>
 <main>

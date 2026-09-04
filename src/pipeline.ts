@@ -12,11 +12,23 @@ import type { VaultIndex, NoteFile } from "./types.js";
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 
+export interface RenderPathOptions {
+  /** Prefix to reach attachments/ from the rendered page's own location. */
+  assetsPrefix?: string;
+  /** Prefix to reach other note pages from the rendered page's own location. */
+  notesPrefix?: string;
+}
+
 /** Parses a note's Markdown body and resolves wikilinks/asset URLs at the AST level. */
-export function parseAndResolve(note: NoteFile, index: VaultIndex, publishedOnly: boolean): Root {
+export function parseAndResolve(
+  note: NoteFile,
+  index: VaultIndex,
+  publishedOnly: boolean,
+  pathOptions: RenderPathOptions = {}
+): Root {
   const tree = parser.parse(note.bodyMarkdown) as Root;
-  rewriteLocalAssetUrls(tree, note.relPath);
-  resolveWikilinks(tree, index, note.slug, publishedOnly);
+  rewriteLocalAssetUrls(tree, note.relPath, pathOptions.assetsPrefix);
+  resolveWikilinks(tree, index, note.slug, publishedOnly, pathOptions.notesPrefix);
   return tree;
 }
 

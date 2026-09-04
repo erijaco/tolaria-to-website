@@ -13,8 +13,14 @@ function isMarkdownLink(url: string): boolean {
 /**
  * Rewrites relative image/file URLs (resolved against the note's own folder in the
  * vault) to point at the flattened attachments/ directory in the output site.
+ * `assetsPrefix` accounts for the output page's own depth (default: one level down,
+ * inside notes/; pass "attachments/" when rendering a note at the site root instead).
  */
-export function rewriteLocalAssetUrls(tree: Root, noteRelPath: string): void {
+export function rewriteLocalAssetUrls(
+  tree: Root,
+  noteRelPath: string,
+  assetsPrefix = "../attachments/"
+): void {
   const noteDir = path.posix.dirname(noteRelPath);
 
   visit(tree, ["image", "link"], (node: any) => {
@@ -23,6 +29,6 @@ export function rewriteLocalAssetUrls(tree: Root, noteRelPath: string): void {
     if (node.type === "link" && isMarkdownLink(url)) return; // leave note-to-note links to wikilinks
 
     const vaultRelPath = path.posix.normalize(path.posix.join(noteDir, decodeURI(url)));
-    node.url = `../attachments/${encodeURI(vaultRelPath)}`;
+    node.url = `${assetsPrefix}${encodeURI(vaultRelPath)}`;
   });
 }
