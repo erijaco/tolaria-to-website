@@ -37,7 +37,56 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
 }
+.page-header--wide { max-width: 980px; }
 .page-header h1 { margin: 0; font-size: 1.1rem; }
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+.layout main { max-width: 760px; min-width: 0; flex: 1; margin: 0; padding: 1.5rem 0 4rem; }
+.sidebar { flex: 0 0 190px; padding-top: 1.5rem; }
+.sidebar summary {
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.sidebar summary::-webkit-details-marker { display: none; }
+.sidebar summary::before {
+  content: "\\25BE";
+  display: inline-block;
+  margin-right: 0.35rem;
+  transition: transform 0.15s ease;
+}
+.sidebar:not([open]) summary::before { transform: rotate(-90deg); }
+.pills { display: flex; flex-direction: column; gap: 0.4rem; }
+.pill {
+  appearance: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--pill-color, var(--border));
+  background: transparent;
+  color: var(--pill-color, var(--muted));
+}
+.pill:hover { background: var(--code-bg); }
+.pill.is-active { background: var(--pill-color, var(--accent)); border-color: transparent; color: #fff; }
+@media (max-width: 640px) {
+  .layout { flex-direction: column; gap: 0.5rem; }
+  .sidebar { flex-basis: auto; width: 100%; padding-top: 1rem; }
+  .pills { flex-direction: row; flex-wrap: wrap; }
+}
 .header-nav { display: flex; align-items: center; gap: 0.9rem; }
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
@@ -267,6 +316,29 @@ export const SEARCH_JS = `
       return item.title.toLowerCase().indexOf(q) !== -1 || item.excerpt.toLowerCase().indexOf(q) !== -1;
     });
     render(matches);
+  });
+})();
+`;
+
+export const SIDEBAR_JS = `
+(function () {
+  var pills = document.querySelectorAll(".pill");
+  var groups = document.querySelectorAll(".nav-group");
+  if (!pills.length || !groups.length) return;
+
+  function applyFilter(type) {
+    groups.forEach(function (g) {
+      g.hidden = Boolean(type) && g.getAttribute("data-type") !== type;
+    });
+    pills.forEach(function (p) {
+      p.classList.toggle("is-active", p.getAttribute("data-type") === type);
+    });
+  }
+
+  pills.forEach(function (p) {
+    p.addEventListener("click", function () {
+      applyFilter(p.getAttribute("data-type") || "");
+    });
   });
 })();
 `;

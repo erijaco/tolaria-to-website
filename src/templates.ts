@@ -162,8 +162,19 @@ export function renderIndexPage(args: {
         .sort((a, b) => a.title.localeCompare(b.title))
         .map((n) => `<li><a href="${notesHref(n.slug, "notes/")}">${escapeHtml(n.title)}</a></li>`)
         .join("");
-      return `<section class="nav-group"><h2>${escapeHtml(label)}</h2><ul>${items}</ul></section>`;
+      return `<section class="nav-group" data-type="${escapeHtml(key)}"><h2>${escapeHtml(label)}</h2><ul>${items}</ul></section>`;
     })
+    .join("");
+
+  const pills = [`<button type="button" class="pill is-active" data-type="">All</button>`]
+    .concat(
+      sortedGroupKeys.map((key) => {
+        const typeDef = types.get(key);
+        const label = typeDef?.sidebarLabel ?? key;
+        const colorStyle = typeDef?.color ? ` style="--pill-color:${escapeHtml(typeDef.color)}"` : "";
+        return `<button type="button" class="pill" data-type="${escapeHtml(key)}"${colorStyle}>${escapeHtml(label)}</button>`;
+      })
+    )
     .join("");
 
   return `<!doctype html>
@@ -176,14 +187,21 @@ export function renderIndexPage(args: {
 <script src="static/search-index.js"></script>
 </head>
 <body>
-<header class="page-header">
+<header class="page-header page-header--wide">
   ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : `<h1>Vault</h1>`}
   <input id="search-input" type="search" placeholder="Search notes...">
 </header>
-<main>
-  <ul id="search-results" class="search-results"></ul>
-  <div class="nav">${nav}</div>
-</main>
+<div class="layout">
+  <details class="sidebar" open>
+    <summary>Filter by type</summary>
+    <div class="pills">${pills}</div>
+  </details>
+  <main>
+    <ul id="search-results" class="search-results"></ul>
+    <div class="nav">${nav}</div>
+  </main>
+</div>
+<script src="static/sidebar.js"></script>
 <script src="static/search.js"></script>
 </body>
 </html>
