@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "description": "Builds an offline-capable static website from a Tolaria vault of Markdown notes.",
   "scripts": {
     "site:build": "tsx src/cli.ts build",
