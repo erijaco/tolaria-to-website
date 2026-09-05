@@ -7,7 +7,7 @@ import { buildVaultIndex } from "./buildIndex.js";
 import { loadIgnoreMatcher, isNotePublishable } from "./filter.js";
 import { parseAndResolve, renderTreeToHtml } from "./pipeline.js";
 import { renderNotePage, renderIndexPage } from "./templates.js";
-import { STYLE_CSS, SEARCH_JS, SIDEBAR_JS } from "./staticAssets.js";
+import { STYLE_CSS, SEARCH_JS, SIDEBAR_JS, THEME_JS } from "./staticAssets.js";
 import { outputName, notesHref } from "./outputName.js";
 import type { Root } from "mdast";
 import type { NoteFile, VaultIndex } from "./types.js";
@@ -101,6 +101,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   await fs.promises.writeFile(path.join(outDir, "static", "style.css"), STYLE_CSS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "search.js"), SEARCH_JS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "sidebar.js"), SIDEBAR_JS, "utf8");
+  await fs.promises.writeFile(path.join(outDir, "static", "theme.js"), THEME_JS, "utf8");
 
   const searchEntries: SearchEntry[] = [];
 

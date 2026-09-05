@@ -1,6 +1,9 @@
 import type { NoteFile, TypeDef, VaultIndex } from "./types.js";
 import { notesHref } from "./outputName.js";
 import type { HeadingEntry } from "./pipeline.js";
+import { THEME_INIT_INLINE_JS } from "./staticAssets.js";
+
+const THEME_TOGGLE_BUTTON = `<button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>`;
 
 export function escapeHtml(s: string): string {
   return s
@@ -133,11 +136,14 @@ export function renderNotePage(args: {
       }>${escapeHtml(typeDef.sidebarLabel ?? typeDef.name)}</span>`
     : "";
 
+  const themeJsHref = cssHref.replace(/style\.css$/, "theme.js");
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>${THEME_INIT_INLINE_JS}</script>
 <title>${escapeHtml(note.title)}</title>
 <link rel="stylesheet" href="${cssHref}">
 </head>
@@ -147,7 +153,10 @@ export function renderNotePage(args: {
     <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
     ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
   </nav>
-  ${badge}
+  <div class="header-actions">
+    ${badge}
+    ${THEME_TOGGLE_BUTTON}
+  </div>
 </header>
 <main>
   <h1>${escapeHtml(note.title)}</h1>
@@ -157,6 +166,7 @@ export function renderNotePage(args: {
   ${backlinksHtml}
   ${frontmatterHtml}
 </main>
+<script src="${themeJsHref}"></script>
 </body>
 </html>
 `;
@@ -214,6 +224,7 @@ export function renderIndexPage(args: {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>${THEME_INIT_INLINE_JS}</script>
 <title>Vault</title>
 <link rel="stylesheet" href="static/style.css">
 <script src="static/search-index.js"></script>
@@ -221,9 +232,12 @@ export function renderIndexPage(args: {
 <body>
 <header class="page-header page-header--wide">
   ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : `<h1>Vault</h1>`}
-  <div class="search-box">
-    <input id="search-input" type="search" placeholder="Search notes..." title="Try: type:Project keyword" autocomplete="off">
-    <kbd class="search-kbd">/</kbd>
+  <div class="header-actions">
+    <div class="search-box">
+      <input id="search-input" type="search" placeholder="Search notes..." title="Try: type:Project keyword" autocomplete="off">
+      <kbd class="search-kbd">/</kbd>
+    </div>
+    ${THEME_TOGGLE_BUTTON}
   </div>
 </header>
 <div class="layout">
@@ -238,6 +252,7 @@ export function renderIndexPage(args: {
 </div>
 <script src="static/sidebar.js"></script>
 <script src="static/search.js"></script>
+<script src="static/theme.js"></script>
 </body>
 </html>
 `;

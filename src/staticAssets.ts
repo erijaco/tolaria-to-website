@@ -1,5 +1,21 @@
 import { iconMaskUrl } from "./icons.js";
 
+/**
+ * Inlined into every page's <head> (not loaded as an external file) so an explicit
+ * theme choice is applied before first paint, avoiding a flash of the wrong theme.
+ *
+ * A `?theme=` query param carried over from the link just clicked takes priority over
+ * localStorage: opened via file://, each note page is a distinct origin in Firefox (and
+ * some other browsers), so localStorage set on one page isn't visible from another -
+ * the query param is what actually carries the choice across page loads (see THEME_JS).
+ */
+export const THEME_INIT_INLINE_JS =
+  `(function(){try{` +
+  `var m=/[?&]theme=(light|dark)\\b/.exec(location.search);` +
+  `var t=m?m[1]:localStorage.getItem("tolaria-theme");` +
+  `if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);` +
+  `}catch(e){}})();`;
+
 export const STYLE_CSS = `
 :root {
   color-scheme: light dark;
@@ -11,13 +27,23 @@ export const STYLE_CSS = `
   --code-bg: #f5f5f5;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #14161a;
     --fg: #e8e8e8;
     --muted: #9a9a9a;
     --border: #2c2f36;
     --code-bg: #1c1f26;
+    color-scheme: dark;
   }
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14161a;
+  --fg: #e8e8e8;
+  --muted: #9a9a9a;
+  --border: #2c2f36;
+  --code-bg: #1c1f26;
 }
 * { box-sizing: border-box; }
 body {
@@ -88,6 +114,46 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   .pills { flex-direction: row; flex-wrap: wrap; }
 }
 .header-nav { display: flex; align-items: center; gap: 0.9rem; }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+.theme-toggle {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.theme-toggle:hover { color: var(--fg); background: var(--code-bg); }
+.theme-toggle::before {
+  content: "";
+  display: block;
+  width: 1.05em;
+  height: 1.05em;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("sun")};
+  mask-image: ${iconMaskUrl("sun")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle::before {
+    -webkit-mask-image: ${iconMaskUrl("moon")};
+    mask-image: ${iconMaskUrl("moon")};
+  }
+}
+:root[data-theme="dark"] .theme-toggle::before {
+  -webkit-mask-image: ${iconMaskUrl("moon")};
+  mask-image: ${iconMaskUrl("moon")};
+}
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
 .home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -282,7 +348,7 @@ details.frontmatter table.properties {
 .nav-group h2 { font-size: 0.95rem; color: var(--muted); }
 .nav-group ul, section.relation-group ul, section.backlinks ul, .search-results { list-style: none; padding: 0; margin: 0; }
 .nav-group li, section.relation-group li, section.backlinks li { padding: 0.15rem 0; }
-.search-box { position: relative; width: 40%; min-width: 180px; }
+.search-box { position: relative; flex: 0 1 320px; min-width: 180px; }
 #search-input {
   font-size: 0.95rem;
   padding: 0.4rem 1.9rem 0.4rem 0.6rem;
@@ -531,6 +597,101 @@ export const SIDEBAR_JS = `
       var type = p.getAttribute("data-type") || "";
       applyFilter(type);
       window.dispatchEvent(new CustomEvent("tolaria:typefilter", { detail: { type: type } }));
+    });
+  });
+})();
+`;
+
+/**
+ * Wires up the theme toggle button and carries an explicit theme choice forward across
+ * page loads. The initial no-flash application (before the stylesheet paints) is
+ * inlined directly into each page's <head> instead - see THEME_INIT_INLINE_JS.
+ *
+ * localStorage alone isn't enough here: opened via file://, distinct note pages can be
+ * distinct storage origins (observed in Firefox), so a value set by one page doesn't
+ * reliably show up on the next. Once the user makes an explicit choice (from the query
+ * param on the link just followed, or recovered from localStorage on a plain reload),
+ * that choice is written onto every same-site link's href as "?theme=light|dark" so it
+ * keeps propagating however the visitor navigates - including links added later by
+ * search results, via a MutationObserver. Before any explicit choice is made, links are
+ * left untouched and each page just follows the OS-level light/dark preference on its
+ * own, matching the site's pre-toggle behavior.
+ */
+export const THEME_JS = `
+(function () {
+  var STORAGE_KEY = "tolaria-theme";
+  var pinned = null;
+
+  function storedTheme() {
+    try {
+      var v = localStorage.getItem(STORAGE_KEY);
+      return v === "light" || v === "dark" ? v : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function currentTheme() {
+    var attr = document.documentElement.getAttribute("data-theme");
+    if (attr === "light" || attr === "dark") return attr;
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return prefersDark ? "dark" : "light";
+  }
+
+  function isLocalPageLink(href) {
+    return Boolean(href) && href.charAt(0) !== "#" && !/^[a-z][a-z0-9+.-]*:/i.test(href);
+  }
+
+  function themeLink(a, theme) {
+    var href = a.getAttribute("href");
+    if (!isLocalPageLink(href)) return;
+    var hashIndex = href.indexOf("#");
+    var fragment = hashIndex === -1 ? "" : href.slice(hashIndex);
+    var pathAndQuery = (hashIndex === -1 ? href : href.slice(0, hashIndex)).replace(
+      /[?&]theme=(?:light|dark)/,
+      ""
+    );
+    var sep = pathAndQuery.indexOf("?") === -1 ? "?" : "&";
+    a.setAttribute("href", pathAndQuery + sep + "theme=" + theme + fragment);
+  }
+
+  function propagate(theme) {
+    document.querySelectorAll("a[href]").forEach(function (a) {
+      themeLink(a, theme);
+    });
+  }
+
+  function applyTheme(theme) {
+    pinned = theme;
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch (e) {}
+    propagate(theme);
+  }
+
+  var queryMatch = /[?&]theme=(light|dark)\\b/.exec(location.search);
+  var initial = queryMatch ? queryMatch[1] : storedTheme();
+  if (initial) applyTheme(initial);
+
+  new MutationObserver(function (mutations) {
+    if (!pinned) return;
+    mutations.forEach(function (m) {
+      m.addedNodes.forEach(function (node) {
+        if (node.nodeType !== 1) return;
+        if (node.matches && node.matches("a[href]")) themeLink(node, pinned);
+        if (node.querySelectorAll) {
+          node.querySelectorAll("a[href]").forEach(function (a) {
+            themeLink(a, pinned);
+          });
+        }
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+
+  document.querySelectorAll(".theme-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      applyTheme(currentTheme() === "dark" ? "light" : "dark");
     });
   });
 })();
