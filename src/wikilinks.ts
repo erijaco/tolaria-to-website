@@ -38,6 +38,7 @@ export function resolveWikilinks(
         }
 
         index.backlinks.get(targetSlug)?.add(currentSlug);
+        index.bodyLinks.get(currentSlug)?.add(targetSlug);
 
         return {
           type: "link",

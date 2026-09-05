@@ -32,12 +32,14 @@ export function buildVaultIndex(notes: NoteFile[]): VaultIndex {
     types: new Map(),
     relationships: new Map(),
     backlinks: new Map(),
+    bodyLinks: new Map(),
     published: new Set(),
   };
 
   for (const note of notes) {
     index.notes.set(note.slug, note);
     index.backlinks.set(note.slug, new Set());
+    index.bodyLinks.set(note.slug, new Set());
     if (!index.byKey.has(note.filenameKey)) index.byKey.set(note.filenameKey, note.slug);
     if (!index.byKey.has(note.titleKey)) index.byKey.set(note.titleKey, note.slug);
   }

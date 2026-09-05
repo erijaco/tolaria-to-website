@@ -4,9 +4,9 @@
 
 Builds an offline-capable static website from a [Tolaria](https://tolaria.md) vault of
 Markdown notes: resolves `[[wikilinks]]`, computes relationships/backlinks, groups notes
-by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), copies
-attachments, and generates a client-side search index — no server or network required to
-browse the output.
+by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), renders a
+per-note local graph of its direct connections, copies attachments, and generates a
+client-side search index — no server or network required to browse the output.
 
 ## Vault conventions supported
 
@@ -94,7 +94,6 @@ covered by the license (it's just example input for the tool).
 ## Limitations / not yet implemented
 
 - `_display: sheet` spreadsheet notes render as plain Markdown, not as tables.
-- No graph/neighborhood view.
 - Custom (non-`belongs_to`/`has`/`related_to`) relationship fields are shown but have no
   computed inverse, matching notes only get an edge if they explicitly declare it.
 - No incremental/watch build — every run rebuilds the whole site.

@@ -45,6 +45,9 @@ function collectNotePageData(note: NoteFile, index: VaultIndex) {
   const backlinkSlugs = [...(index.backlinks.get(note.slug) ?? [])].filter((s) =>
     index.published.has(s)
   );
+  const outboundSlugs = [...(index.bodyLinks.get(note.slug) ?? [])].filter((s) =>
+    index.published.has(s)
+  );
   return {
     typeDef: note.typeName ? index.types.get(note.typeName) : undefined,
     relationships: relationships.map((e) => ({
@@ -52,6 +55,7 @@ function collectNotePageData(note: NoteFile, index: VaultIndex) {
       target: index.notes.get(e.targetSlug)!,
     })),
     backlinks: backlinkSlugs.map((s) => index.notes.get(s)!),
+    outboundLinks: outboundSlugs.map((s) => index.notes.get(s)!),
   };
 }
 
@@ -109,7 +113,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
     if (!index.published.has(note.slug)) continue;
     const tree = trees.get(note.slug)!;
     const { html: bodyHtml, headings } = renderTreeToHtml(tree);
-    const { typeDef, relationships, backlinks } = collectNotePageData(note, index);
+    const { typeDef, relationships, backlinks, outboundLinks } = collectNotePageData(note, index);
 
     const html = renderNotePage({
       note,
@@ -118,6 +122,8 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       typeDef,
       relationships,
       backlinks,
+      outboundLinks,
+      types: index.types,
       linkIndex: index,
       backHref: `../${navFilename}`,
       homeHref: homeSlug ? "../index.html" : undefined,
@@ -165,7 +171,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       assetsPrefix: "attachments/",
       notesPrefix: "notes/",
     });
-    const { typeDef, relationships, backlinks } = collectNotePageData(homeNote, index);
+    const { typeDef, relationships, backlinks, outboundLinks } = collectNotePageData(homeNote, index);
     const { html: homeBodyHtml, headings: homeHeadings } = renderTreeToHtml(homeTree);
     const homeHtml = renderNotePage({
       note: homeNote,
@@ -174,6 +180,8 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       typeDef,
       relationships,
       backlinks,
+      outboundLinks,
+      types: index.types,
       linkIndex: index,
       cssHref: "static/style.css",
       backHref: navFilename,

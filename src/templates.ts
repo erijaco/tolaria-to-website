@@ -2,16 +2,10 @@ import type { NoteFile, TypeDef, VaultIndex } from "./types.js";
 import { notesHref } from "./outputName.js";
 import type { HeadingEntry } from "./pipeline.js";
 import { THEME_INIT_INLINE_JS } from "./staticAssets.js";
+import { escapeHtml } from "./html.js";
+import { renderLocalGraph } from "./graph.js";
 
 const THEME_TOGGLE_BUTTON = `<button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>`;
-
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 /**
  * Same redaction rule as body wikilinks: a resolved-but-unpublished target never has
@@ -63,6 +57,8 @@ export function renderNotePage(args: {
   typeDef?: TypeDef;
   relationships: { field: string; target: NoteFile }[];
   backlinks: NoteFile[];
+  outboundLinks: NoteFile[];
+  types: Map<string, TypeDef>;
   linkIndex: Pick<VaultIndex, "byKey" | "published">;
   /** Path overrides for rendering this note somewhere other than its default notes/ location. */
   cssHref?: string;
@@ -79,6 +75,8 @@ export function renderNotePage(args: {
     typeDef,
     relationships,
     backlinks,
+    outboundLinks,
+    types,
     linkIndex,
     cssHref = "../static/style.css",
     backHref = "../index.html",
@@ -117,6 +115,8 @@ export function renderNotePage(args: {
         .map((b) => `<li><a href="${notesHref(b.slug, notesPrefix)}">${escapeHtml(b.title)}</a></li>`)
         .join("")}</ul></section>`
     : "";
+
+  const graphHtml = renderLocalGraph({ note, relationships, backlinks, outboundLinks, types, notesPrefix });
 
   const frontmatterHtml = propRows
     ? `<details class="frontmatter">
@@ -164,6 +164,7 @@ export function renderNotePage(args: {
   <article class="note-body">${bodyHtml}</article>
   ${relSections}
   ${backlinksHtml}
+  ${graphHtml}
   ${frontmatterHtml}
 </main>
 <script src="${themeJsHref}"></script>

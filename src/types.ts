@@ -43,6 +43,8 @@ export interface VaultIndex {
   relationships: Map<string, RelationshipEdge[]>;
   /** slug -> set of slugs whose body links to it */
   backlinks: Map<string, Set<string>>;
+  /** slug -> set of slugs its own body links to (the inverse of backlinks) */
+  bodyLinks: Map<string, Set<string>>;
   /** slugs that pass the publish filter */
   published: Set<string>;
 }

@@ -325,6 +325,24 @@ section.relation-group h3, section.backlinks h3 {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+.local-graph { margin-top: 2rem; }
+.local-graph h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.local-graph svg { display: block; width: 100%; height: auto; max-height: 420px; }
+.graph-edge { stroke: var(--border); stroke-width: 1; }
+.graph-edge--backlink-only { stroke-dasharray: 3 3; }
+.graph-node { fill: var(--type-color, var(--muted)); stroke: var(--bg); stroke-width: 1.5; }
+.graph-node--center { fill: var(--fg); }
+.graph-label { font-size: 11px; fill: var(--muted); }
+.graph-label--center { font-weight: 600; fill: var(--fg); }
+.graph-node-link { cursor: pointer; }
+.graph-node-link:hover .graph-label { fill: var(--fg); text-decoration: underline; }
+.graph-node-link:hover .graph-edge { stroke: var(--accent); }
+.graph-node-link:hover .graph-node { stroke: var(--accent); }
 details.frontmatter {
   margin-top: 3rem;
   padding-top: 1rem;
