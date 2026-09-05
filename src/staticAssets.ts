@@ -231,6 +231,27 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
 .note-body .callout-quote { --callout-color: #9e9e9e; --callout-bg: rgba(158, 158, 158, 0.08); }
 .note-body .callout-quote > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("quote")}; mask-image: ${iconMaskUrl("quote")}; }
 
+nav.toc {
+  margin: 1.25rem 0 2rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+nav.toc .toc-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+nav.toc ul { list-style: none; margin: 0; padding-left: 0; }
+nav.toc ul ul { padding-left: 1rem; }
+nav.toc li { padding: 0.15rem 0; }
+nav.toc a { color: var(--fg); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+
 section.relation-group, section.backlinks { margin-top: 2rem; }
 section.relation-group h3, section.backlinks h3 {
   font-size: 0.8rem;

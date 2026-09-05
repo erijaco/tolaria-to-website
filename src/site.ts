@@ -107,12 +107,13 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   for (const note of notes) {
     if (!index.published.has(note.slug)) continue;
     const tree = trees.get(note.slug)!;
-    const bodyHtml = renderTreeToHtml(tree);
+    const { html: bodyHtml, headings } = renderTreeToHtml(tree);
     const { typeDef, relationships, backlinks } = collectNotePageData(note, index);
 
     const html = renderNotePage({
       note,
       bodyHtml,
+      headings,
       typeDef,
       relationships,
       backlinks,
@@ -164,9 +165,11 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       notesPrefix: "notes/",
     });
     const { typeDef, relationships, backlinks } = collectNotePageData(homeNote, index);
+    const { html: homeBodyHtml, headings: homeHeadings } = renderTreeToHtml(homeTree);
     const homeHtml = renderNotePage({
       note: homeNote,
-      bodyHtml: renderTreeToHtml(homeTree),
+      bodyHtml: homeBodyHtml,
+      headings: homeHeadings,
       typeDef,
       relationships,
       backlinks,

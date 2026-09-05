@@ -1,5 +1,6 @@
 import type { NoteFile, TypeDef, VaultIndex } from "./types.js";
 import { notesHref } from "./outputName.js";
+import type { HeadingEntry } from "./pipeline.js";
 
 export function escapeHtml(s: string): string {
   return s
@@ -29,9 +30,33 @@ function stringifyValue(v: unknown, linkIndex: Pick<VaultIndex, "byKey" | "publi
   return redactWikilinks(String(v), linkIndex);
 }
 
+/** Builds a nested <ul> table of contents from a flat, document-order heading list. */
+function renderTocList(headings: HeadingEntry[]): string {
+  interface TocNode {
+    entry?: HeadingEntry;
+    children: TocNode[];
+  }
+  const root: TocNode = { children: [] };
+  const stack: { depth: number; node: TocNode }[] = [{ depth: 0, node: root }];
+  for (const entry of headings) {
+    while (stack.length > 1 && stack[stack.length - 1].depth >= entry.depth) stack.pop();
+    const node: TocNode = { entry, children: [] };
+    stack[stack.length - 1].node.children.push(node);
+    stack.push({ depth: entry.depth, node });
+  }
+  const render = (node: TocNode): string =>
+    node.children.length
+      ? `<ul>${node.children
+          .map((c) => `<li><a href="#${c.entry!.id}">${escapeHtml(c.entry!.text)}</a>${render(c)}</li>`)
+          .join("")}</ul>`
+      : "";
+  return render(root);
+}
+
 export function renderNotePage(args: {
   note: NoteFile;
   bodyHtml: string;
+  headings: HeadingEntry[];
   typeDef?: TypeDef;
   relationships: { field: string; target: NoteFile }[];
   backlinks: NoteFile[];
@@ -47,6 +72,7 @@ export function renderNotePage(args: {
   const {
     note,
     bodyHtml,
+    headings,
     typeDef,
     relationships,
     backlinks,
@@ -96,6 +122,11 @@ export function renderNotePage(args: {
       </details>`
     : "";
 
+  const tocHtml =
+    headings.length >= 2
+      ? `<nav class="toc"><p class="toc-title">Contents</p>${renderTocList(headings)}</nav>`
+      : "";
+
   const badge = typeDef
     ? `<span class="type-badge"${
         typeDef.color ? ` style="--type-color:${escapeHtml(typeDef.color)}"` : ""
@@ -120,6 +151,7 @@ export function renderNotePage(args: {
 </header>
 <main>
   <h1>${escapeHtml(note.title)}</h1>
+  ${tocHtml}
   <article class="note-body">${bodyHtml}</article>
   ${relSections}
   ${backlinksHtml}
