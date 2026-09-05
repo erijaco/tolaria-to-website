@@ -9,65 +9,65 @@ importers:
   .:
     dependencies:
       commander:
-        specifier: ^12.1.0
+        specifier: 12.1.0
         version: 12.1.0
       fs-extra:
-        specifier: ^11.2.0
+        specifier: 11.4.0
         version: 11.4.0
       gray-matter:
-        specifier: ^4.0.3
+        specifier: 4.0.3
         version: 4.0.3
       ignore:
-        specifier: ^5.3.2
+        specifier: 5.3.2
         version: 5.3.2
       mdast-util-find-and-replace:
-        specifier: ^3.0.1
+        specifier: 3.0.2
         version: 3.0.2
       prompts:
-        specifier: ^2.4.2
+        specifier: 2.4.2
         version: 2.4.2
       rehype-highlight:
-        specifier: ^7.0.0
+        specifier: 7.0.2
         version: 7.0.2
       rehype-stringify:
-        specifier: ^10.0.0
+        specifier: 10.0.1
         version: 10.0.1
       remark-gfm:
-        specifier: ^4.0.0
+        specifier: 4.0.1
         version: 4.0.1
       remark-parse:
-        specifier: ^11.0.0
+        specifier: 11.0.0
         version: 11.0.0
       remark-rehype:
-        specifier: ^11.1.0
+        specifier: 11.1.2
         version: 11.1.2
       unified:
-        specifier: ^11.0.5
+        specifier: 11.0.5
         version: 11.0.5
       unist-util-visit:
-        specifier: ^5.0.0
+        specifier: 5.1.0
         version: 5.1.0
     devDependencies:
       '@types/fs-extra':
-        specifier: ^11.0.4
+        specifier: 11.0.4
         version: 11.0.4
       '@types/hast':
-        specifier: ^3.0.5
+        specifier: 3.0.5
         version: 3.0.5
       '@types/mdast':
-        specifier: ^4.0.4
+        specifier: 4.0.4
         version: 4.0.4
       '@types/node':
-        specifier: ^22.7.4
+        specifier: 22.20.1
         version: 22.20.1
       '@types/prompts':
-        specifier: ^2.4.9
+        specifier: 2.4.9
         version: 2.4.9
       tsx:
-        specifier: ^4.19.1
+        specifier: 4.23.13
         version: 4.23.13
       typescript:
-        specifier: ^5.6.2
+        specifier: 5.9.3
         version: 5.9.3
 
 packages:

@@ -2,3 +2,9 @@ node_modules/
 _site/
 *.log
 .DS_Store
+
+# This project only supports pnpm (see pnpm-workspace.yaml and scripts/verify-pnpm.mjs)
+# - ignored so a lockfile from the wrong tool can never be accidentally committed.
+package-lock.json
+yarn.lock
+npm-shrinkwrap.json

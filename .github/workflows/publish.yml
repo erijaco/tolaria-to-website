@@ -5,18 +5,27 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least-privilege default: this job only needs to read the source repo - it publishes
+# to a *different* repo using its own PUBLIC_REPO_TOKEN secret, not the auto-issued
+# GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
+      # Third-party Actions are pinned to a commit SHA, not a version tag, since a tag
+      # can be repointed (deliberately or via a compromised maintainer account) to
+      # different, unreviewed code without this workflow file changing at all.
       - name: Checkout source repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm

@@ -72,6 +72,35 @@ Setup:
 The workflow force-pushes `main` in the public repo each run, since it's a generated
 artifact, not something meant to be hand-edited or carry history.
 
+## Supply chain security
+
+This project only supports [pnpm](https://pnpm.io) for installs — running `npm install`
+or `yarn install` here fails fast via a `preinstall` guard
+(`scripts/verify-pnpm.mjs`), and `package-lock.json`/`yarn.lock` are gitignored so a
+lockfile from the wrong tool can never end up committed. (The guard makes a wrong-tool
+install fail loudly, but npm in particular may still resolve/extract packages into
+`node_modules` before honoring that failure — the actual defense is that the *committed*
+dependency state, which CI and `pnpm install --frozen-lockfile` both trust, can only ever
+come from pnpm.)
+
+Beyond that:
+
+- `pnpm-workspace.yaml` pins pnpm's own supply-chain settings explicitly (matching pnpm
+  11's defaults, so they hold even if a future pnpm version changes them):
+  `minimumReleaseAge` (won't resolve a package version published less than a day ago —
+  most malicious releases are caught and pulled within that window),
+  `blockExoticSubdeps` (forbids transitive deps resolved from git/tarball URLs instead of
+  the registry), and `allowBuilds` (only `esbuild` may run install scripts; everything
+  else is blocked by default).
+- Dependency versions in `package.json` are pinned exactly (no `^`/`~` ranges), so
+  `pnpm add`/`pnpm update` can't silently drift onto a newer, unreviewed version;
+  `pnpm-lock.yaml` is committed and CI installs with `--frozen-lockfile`.
+- The publish workflow's third-party Actions (`actions/checkout`, `actions/setup-node`,
+  `pnpm/action-setup`) are pinned to a commit SHA rather than a version tag, since a tag
+  can be repointed to different code without this repo changing at all, and the workflow
+  requests only `contents: read` — it publishes to a separate repo using its own PAT
+  secret, not the auto-issued token.
+
 ## Credits
 
 Built on [commander](https://github.com/tj/commander.js), [gray-matter](https://github.com/jonschlinkert/gray-matter),

@@ -1,2 +1,11 @@
 allowBuilds:
   esbuild: true
+
+# Supply-chain hardening. minimumReleaseAge and blockExoticSubdeps already match pnpm
+# 11's own defaults - pinned explicitly here so they stay in effect even if a future
+# pnpm major version changes its defaults, and so they're visible to anyone auditing
+# this repo rather than relying on an implicit tool default.
+minimumReleaseAge: 1440 # don't resolve a package version published less than a day ago
+blockExoticSubdeps: true # forbid transitive deps resolved from git/tarball URLs instead of the registry
+saveExact: true # `pnpm add` records exact versions, not ^ranges, for future additions
+engineStrict: true # refuse to install if the running Node doesn't satisfy "engines"
