@@ -282,19 +282,39 @@ details.frontmatter table.properties {
 .nav-group h2 { font-size: 0.95rem; color: var(--muted); }
 .nav-group ul, section.relation-group ul, section.backlinks ul, .search-results { list-style: none; padding: 0; margin: 0; }
 .nav-group li, section.relation-group li, section.backlinks li { padding: 0.15rem 0; }
+.search-box { position: relative; width: 40%; min-width: 180px; }
 #search-input {
   font-size: 0.95rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 1.9rem 0.4rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
   color: var(--fg);
-  width: 40%;
-  min-width: 180px;
+  width: 100%;
 }
+.search-kbd {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 0.7rem/1 inherit;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--code-bg);
+  pointer-events: none;
+}
+.search-box.is-focused .search-kbd, .search-box.has-value .search-kbd { display: none; }
 .search-results:not(:empty) { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
-.search-results li { display: flex; align-items: center; gap: 0.5rem; }
+.search-results li { padding: 0.3rem 0; }
+.search-result-link { display: block; color: inherit; text-decoration: none; }
+.search-result-link:hover .search-result-title { text-decoration: underline; }
+.search-result-row { display: flex; align-items: center; gap: 0.5rem; }
+.search-result-title { color: var(--accent); }
 .search-type { font-size: 0.75rem; color: var(--muted); }
+.search-snippet { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--muted); }
+.search-results mark { background: none; color: var(--fg); font-weight: 700; padding: 0; }
 
 .hljs-comment, .hljs-quote { color: #6a737d; }
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #d73a49; }
@@ -307,36 +327,186 @@ export const SEARCH_JS = `
   var data = window.__TOLARIA_SEARCH__ || [];
   var input = document.getElementById("search-input");
   var results = document.getElementById("search-results");
+  var box = document.querySelector(".search-box");
   if (!input || !results) return;
 
-  function render(items) {
+  var activeType = "";
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Scores a query as a fuzzy subsequence of text: every query char must appear in
+  // order, with bonuses for consecutive runs and word-boundary starts. Returns null
+  // when the query isn't a subsequence at all (i.e. no match).
+  function fuzzyMatch(query, text) {
+    if (!query) return null;
+    var q = query.toLowerCase();
+    var t = text.toLowerCase();
+    var qi = 0;
+    var consecutive = 0;
+    var indices = [];
+    for (var ti = 0; ti < t.length && qi < q.length; ti++) {
+      if (t[ti] === q[qi]) {
+        indices.push(ti);
+        consecutive++;
+        var boundary = ti === 0 || /[\\s\\-_/.]/.test(t[ti - 1]);
+        indices.__score = (indices.__score || 0) + 1 + consecutive + (boundary ? 3 : 0);
+        qi++;
+      } else {
+        consecutive = 0;
+      }
+    }
+    if (qi < q.length) return null;
+    var score = indices.__score || 0;
+    if (t.indexOf(q) !== -1) score += 50;
+    return { score: score, indices: indices };
+  }
+
+  // Wraps matched character indices in <mark>, escaping everything else.
+  function highlightHtml(text, indices) {
+    if (!indices || !indices.length) return escapeHtml(text);
+    var marked = {};
+    indices.forEach(function (i) { marked[i] = true; });
+    var out = "";
+    var i = 0;
+    while (i < text.length) {
+      if (marked[i]) {
+        var run = "";
+        while (i < text.length && marked[i]) {
+          run += text[i];
+          i++;
+        }
+        out += "<mark>" + escapeHtml(run) + "</mark>";
+      } else {
+        out += escapeHtml(text[i]);
+        i++;
+      }
+    }
+    return out;
+  }
+
+  // Picks a ~120-char window around the matched region so the snippet stays short
+  // while still showing why the note matched.
+  function snippetFor(text, indices) {
+    if (!indices || !indices.length) {
+      return { text: text.slice(0, 160), indices: [] };
+    }
+    var start = Math.max(0, indices[0] - 40);
+    var end = Math.min(text.length, indices[indices.length - 1] + 60);
+    var prefix = start > 0 ? "…" : "";
+    var suffix = end < text.length ? "…" : "";
+    var rel = indices
+      .filter(function (i) { return i >= start && i < end; })
+      .map(function (i) { return i - start + prefix.length; });
+    return { text: prefix + text.slice(start, end) + suffix, indices: rel };
+  }
+
+  function parseQuery(raw) {
+    var typeMatch = raw.match(/type:(\\S+)/i);
+    return {
+      type: typeMatch ? typeMatch[1].toLowerCase() : "",
+      text: raw.replace(/type:\\S+/i, "").trim(),
+    };
+  }
+
+  function render(matches) {
     results.innerHTML = "";
-    items.slice(0, 50).forEach(function (item) {
+    matches.slice(0, 50).forEach(function (m) {
       var li = document.createElement("li");
       var a = document.createElement("a");
-      a.href = item.href;
-      a.textContent = item.title;
-      li.appendChild(a);
-      if (item.typeName) {
-        var span = document.createElement("span");
-        span.className = "search-type";
-        span.textContent = item.typeName;
-        li.appendChild(span);
+      a.className = "search-result-link";
+      a.href = m.item.href;
+
+      var row = document.createElement("div");
+      row.className = "search-result-row";
+      row.innerHTML =
+        '<span class="search-result-title">' + highlightHtml(m.item.title, m.titleIndices) + "</span>" +
+        (m.item.typeName ? '<span class="search-type">' + escapeHtml(m.item.typeName) + "</span>" : "");
+      a.appendChild(row);
+
+      var snippet = snippetFor(m.item.excerpt, m.excerptIndices);
+      if (snippet.text) {
+        var p = document.createElement("p");
+        p.className = "search-snippet";
+        p.innerHTML = highlightHtml(snippet.text, snippet.indices);
+        a.appendChild(p);
       }
+
+      li.appendChild(a);
       results.appendChild(li);
     });
   }
 
-  input.addEventListener("input", function () {
-    var q = input.value.trim().toLowerCase();
-    if (!q) {
+  function runSearch() {
+    var parsed = parseQuery(input.value.trim());
+    var effectiveType = parsed.type || activeType;
+    if (!parsed.text && !effectiveType) {
       results.innerHTML = "";
       return;
     }
-    var matches = data.filter(function (item) {
-      return item.title.toLowerCase().indexOf(q) !== -1 || item.excerpt.toLowerCase().indexOf(q) !== -1;
+    var matches = [];
+    data.forEach(function (item) {
+      if (effectiveType && (!item.typeName || item.typeName.toLowerCase().indexOf(effectiveType) === -1)) {
+        return;
+      }
+      if (!parsed.text) {
+        matches.push({ item: item, score: 1, titleIndices: [], excerptIndices: [] });
+        return;
+      }
+      var titleMatch = fuzzyMatch(parsed.text, item.title);
+      var excerptMatch = fuzzyMatch(parsed.text, item.excerpt);
+      if (!titleMatch && !excerptMatch) return;
+      matches.push({
+        item: item,
+        score: (titleMatch ? titleMatch.score * 3 : 0) + (excerptMatch ? excerptMatch.score : 0),
+        titleIndices: titleMatch ? titleMatch.indices : [],
+        excerptIndices: excerptMatch ? excerptMatch.indices : [],
+      });
     });
+    matches.sort(function (a, b) { return b.score - a.score; });
     render(matches);
+  }
+
+  input.addEventListener("input", function () {
+    if (box) box.classList.toggle("has-value", Boolean(input.value));
+    runSearch();
+  });
+
+  if (box) {
+    input.addEventListener("focus", function () { box.classList.add("is-focused"); });
+    input.addEventListener("blur", function () { box.classList.remove("is-focused"); });
+  }
+
+  window.addEventListener("tolaria:typefilter", function (e) {
+    activeType = (e.detail && e.detail.type) || "";
+    runSearch();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var active = document.activeElement;
+    var isEditable =
+      active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    } else if (e.key === "/" && !isEditable) {
+      e.preventDefault();
+      input.focus();
+    } else if (e.key === "Escape" && active === input) {
+      if (input.value) {
+        input.value = "";
+        if (box) box.classList.remove("has-value");
+        runSearch();
+      } else {
+        input.blur();
+      }
+    }
   });
 })();
 `;
@@ -358,7 +528,9 @@ export const SIDEBAR_JS = `
 
   pills.forEach(function (p) {
     p.addEventListener("click", function () {
-      applyFilter(p.getAttribute("data-type") || "");
+      var type = p.getAttribute("data-type") || "";
+      applyFilter(type);
+      window.dispatchEvent(new CustomEvent("tolaria:typefilter", { detail: { type: type } }));
     });
   });
 })();

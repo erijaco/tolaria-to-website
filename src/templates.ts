@@ -221,7 +221,10 @@ export function renderIndexPage(args: {
 <body>
 <header class="page-header page-header--wide">
   ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : `<h1>Vault</h1>`}
-  <input id="search-input" type="search" placeholder="Search notes...">
+  <div class="search-box">
+    <input id="search-input" type="search" placeholder="Search notes..." title="Try: type:Project keyword" autocomplete="off">
+    <kbd class="search-kbd">/</kbd>
+  </div>
 </header>
 <div class="layout">
   <details class="sidebar" open>
