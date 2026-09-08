@@ -25,6 +25,8 @@ export const STYLE_CSS = `
   --border: #e2e2e2;
   --accent: #4f8ef7;
   --code-bg: #f5f5f5;
+  --highlight-bg: #fbe45c;
+  --highlight-fg: #2b2200;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -33,6 +35,8 @@ export const STYLE_CSS = `
     --muted: #9a9a9a;
     --border: #2c2f36;
     --code-bg: #1c1f26;
+    --highlight-bg: #7a5f00;
+    --highlight-fg: #fff6e0;
     color-scheme: dark;
   }
 }
@@ -44,6 +48,8 @@ export const STYLE_CSS = `
   --muted: #9a9a9a;
   --border: #2c2f36;
   --code-bg: #1c1f26;
+  --highlight-bg: #7a5f00;
+  --highlight-fg: #fff6e0;
 }
 * { box-sizing: border-box; }
 body {
@@ -208,6 +214,12 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
 }
 .note-body code { background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 4px; }
 .note-body pre code { background: none; padding: 0; }
+.note-body mark.highlight {
+  background: var(--highlight-bg);
+  color: var(--highlight-fg);
+  padding: 0.05em 0.2em;
+  border-radius: 3px;
+}
 .note-body table {
   display: block;
   width: fit-content;

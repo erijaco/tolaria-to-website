@@ -10,6 +10,7 @@ import type { Element, Root as HastRoot, Text } from "hast";
 import { resolveWikilinks } from "./wikilinks.js";
 import { rewriteLocalAssetUrls } from "./rewriteAssets.js";
 import { transformCallouts } from "./callouts.js";
+import { resolveHighlights } from "./highlights.js";
 import type { VaultIndex, NoteFile } from "./types.js";
 
 const parser = unified().use(remarkParse).use(remarkGfm);
@@ -30,6 +31,7 @@ export function parseAndResolve(
 ): Root {
   const tree = parser.parse(note.bodyMarkdown) as Root;
   transformCallouts(tree);
+  resolveHighlights(tree);
   rewriteLocalAssetUrls(tree, note.relPath, pathOptions.assetsPrefix);
   resolveWikilinks(tree, index, note.slug, publishedOnly, pathOptions.notesPrefix);
   return tree;
