@@ -67,6 +67,8 @@ export function renderNotePage(args: {
   notesPrefix?: string;
   /** When a note has been picked as the home page, this links directly back to it. */
   homeHref?: string;
+  /** Whether the rendered body contains a ```mermaid fenced code block. */
+  hasMermaid?: boolean;
 }): string {
   const {
     note,
@@ -83,6 +85,7 @@ export function renderNotePage(args: {
     backLabel = "All notes",
     notesPrefix = "",
     homeHref,
+    hasMermaid = false,
   } = args;
 
   const propRows = Object.entries(note.frontmatter)
@@ -137,6 +140,10 @@ export function renderNotePage(args: {
     : "";
 
   const themeJsHref = cssHref.replace(/style\.css$/, "theme.js");
+  const mermaidScripts = hasMermaid
+    ? `<script src="${cssHref.replace(/style\.css$/, "mermaid.min.js")}"></script>
+<script src="${cssHref.replace(/style\.css$/, "mermaid-init.js")}"></script>`
+    : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -168,6 +175,7 @@ export function renderNotePage(args: {
   ${frontmatterHtml}
 </main>
 <script src="${themeJsHref}"></script>
+${mermaidScripts}
 </body>
 </html>
 `;

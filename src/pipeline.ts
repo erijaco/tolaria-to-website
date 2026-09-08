@@ -39,7 +39,7 @@ export function parseAndResolve(
 
 const stringifier = unified()
   .use(remarkRehype, { allowDangerousHtml: false })
-  .use(rehypeHighlight)
+  .use(rehypeHighlight, { plainText: ["mermaid"] })
   .use(rehypeStringify);
 
 export interface HeadingEntry {
@@ -68,11 +68,23 @@ function headingText(node: Element): string {
   return text;
 }
 
-/** Assigns a unique slug id to each heading in place and returns them in document order. */
-function addHeadingIds(hast: HastRoot): HeadingEntry[] {
+/**
+ * Assigns a unique slug id to each heading in place (returned in document order) and
+ * reports whether the tree contains a ```mermaid fenced code block, in one combined
+ * walk over the hast tree.
+ */
+function scanHast(hast: HastRoot): { headings: HeadingEntry[]; hasMermaid: boolean } {
   const headings: HeadingEntry[] = [];
   const seen = new Map<string, number>();
+  let hasMermaid = false;
   visit(hast, "element", (node: Element) => {
+    if (node.tagName === "code") {
+      const className = node.properties?.className;
+      if (Array.isArray(className) && className.includes("language-mermaid")) {
+        hasMermaid = true;
+      }
+      return;
+    }
     const match = /^h([1-6])$/.exec(node.tagName);
     if (!match) return;
     const text = headingText(node).trim();
@@ -84,12 +96,14 @@ function addHeadingIds(hast: HastRoot): HeadingEntry[] {
     node.properties = { ...node.properties, id };
     headings.push({ id, text, depth: Number(match[1]) });
   });
-  return headings;
+  return { headings, hasMermaid };
 }
 
 /** Converts a resolved mdast tree to a final HTML string (mdast -> hast -> HTML). */
-export function renderTreeToHtml(tree: Root): { html: string; headings: HeadingEntry[] } {
+export function renderTreeToHtml(
+  tree: Root
+): { html: string; headings: HeadingEntry[]; hasMermaid: boolean } {
   const hast = stringifier.runSync(tree) as HastRoot;
-  const headings = addHeadingIds(hast);
-  return { html: stringifier.stringify(hast), headings };
+  const { headings, hasMermaid } = scanHast(hast);
+  return { html: stringifier.stringify(hast), headings, hasMermaid };
 }

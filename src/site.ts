@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import { scanVault } from "./scan.js";
 import { parseNote } from "./parseNote.js";
@@ -7,7 +8,7 @@ import { buildVaultIndex } from "./buildIndex.js";
 import { loadIgnoreMatcher, isNotePublishable } from "./filter.js";
 import { parseAndResolve, renderTreeToHtml } from "./pipeline.js";
 import { renderNotePage, renderIndexPage } from "./templates.js";
-import { STYLE_CSS, SEARCH_JS, SIDEBAR_JS, THEME_JS } from "./staticAssets.js";
+import { STYLE_CSS, SEARCH_JS, SIDEBAR_JS, THEME_JS, MERMAID_INIT_JS } from "./staticAssets.js";
 import { outputName, notesHref } from "./outputName.js";
 import type { Root } from "mdast";
 import type { NoteFile, VaultIndex } from "./types.js";
@@ -108,11 +109,13 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   await fs.promises.writeFile(path.join(outDir, "static", "theme.js"), THEME_JS, "utf8");
 
   const searchEntries: SearchEntry[] = [];
+  let siteHasMermaid = false;
 
   for (const note of notes) {
     if (!index.published.has(note.slug)) continue;
     const tree = trees.get(note.slug)!;
-    const { html: bodyHtml, headings } = renderTreeToHtml(tree);
+    const { html: bodyHtml, headings, hasMermaid } = renderTreeToHtml(tree);
+    if (hasMermaid) siteHasMermaid = true;
     const { typeDef, relationships, backlinks, outboundLinks } = collectNotePageData(note, index);
 
     const html = renderNotePage({
@@ -127,6 +130,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       linkIndex: index,
       backHref: `../${navFilename}`,
       homeHref: homeSlug ? "../index.html" : undefined,
+      hasMermaid,
     });
 
     await fs.promises.writeFile(
@@ -172,7 +176,9 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       notesPrefix: "notes/",
     });
     const { typeDef, relationships, backlinks, outboundLinks } = collectNotePageData(homeNote, index);
-    const { html: homeBodyHtml, headings: homeHeadings } = renderTreeToHtml(homeTree);
+    const { html: homeBodyHtml, headings: homeHeadings, hasMermaid: homeHasMermaid } =
+      renderTreeToHtml(homeTree);
+    if (homeHasMermaid) siteHasMermaid = true;
     const homeHtml = renderNotePage({
       note: homeNote,
       bodyHtml: homeBodyHtml,
@@ -187,12 +193,23 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       backHref: navFilename,
       backLabel: "All notes",
       notesPrefix: "notes/",
+      hasMermaid: homeHasMermaid,
     });
     await fs.promises.writeFile(path.join(outDir, "index.html"), homeHtml, "utf8");
   }
 
   const searchJsData = `window.__TOLARIA_SEARCH__ = ${JSON.stringify(searchEntries)};\n`;
   await fs.promises.writeFile(path.join(outDir, "static", "search-index.js"), searchJsData, "utf8");
+
+  if (siteHasMermaid) {
+    const mermaidBundlePath = fileURLToPath(import.meta.resolve("mermaid/dist/mermaid.min.js"));
+    await fse.copyFile(mermaidBundlePath, path.join(outDir, "static", "mermaid.min.js"));
+    await fs.promises.writeFile(
+      path.join(outDir, "static", "mermaid-init.js"),
+      MERMAID_INIT_JS,
+      "utf8"
+    );
+  }
 
   console.log(`Site written to ${outDir}`);
 }

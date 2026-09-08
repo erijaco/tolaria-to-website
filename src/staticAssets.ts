@@ -220,6 +220,17 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
   padding: 0.05em 0.2em;
   border-radius: 3px;
 }
+.note-body pre.mermaid-source-rendered { display: none; }
+.note-body .mermaid-diagram {
+  margin: 1.25rem 0;
+  overflow-x: auto;
+}
+.note-body .mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
 .note-body table {
   display: block;
   width: fit-content;
@@ -698,6 +709,7 @@ export const THEME_JS = `
       localStorage.setItem(STORAGE_KEY, theme);
     } catch (e) {}
     propagate(theme);
+    document.dispatchEvent(new CustomEvent("tolaria:themechange", { detail: { theme: theme } }));
   }
 
   var queryMatch = /[?&]theme=(light|dark)\\b/.exec(location.search);
@@ -724,5 +736,116 @@ export const THEME_JS = `
       applyTheme(currentTheme() === "dark" ? "light" : "dark");
     });
   });
+})();
+`;
+
+/**
+ * Renders ```mermaid fenced code blocks (left as plain text by rehype-highlight, see
+ * pipeline.ts) into inline SVG via the vendored mermaid.min.js. The original
+ * <pre><code> is never removed, only hidden on success (`.mermaid-source-rendered` in
+ * STYLE_CSS) - if rendering throws, is slow, or JS is disabled entirely, the raw
+ * source stays visible, the same "degrade to plain rather than break the page"
+ * behavior as a dead wikilink elsewhere in this codebase.
+ *
+ * Diagram colors come from the site's own CSS custom properties (mermaid's "base"
+ * theme driven by `themeVariables`) rather than mermaid's stock palette, recomputed on
+ * every render so they can't drift from the real theme. Because mermaid bakes resolved
+ * colors into each rendered SVG, a light/dark toggle can't just be a CSS change here -
+ * this listens for the `tolaria:themechange` event (dispatched by THEME_JS's
+ * applyTheme) and re-renders every diagram from its saved source with a freshly minted
+ * id each time (reusing an id makes mermaid/d3 treat it as a duplicate).
+ */
+export const MERMAID_INIT_JS = `
+(function () {
+  var blocks = [];
+  var generation = 0;
+
+  function themeVariablesFromCss() {
+    var cs = getComputedStyle(document.documentElement);
+    function v(name, fallback) {
+      var val = cs.getPropertyValue(name);
+      val = val ? val.trim() : "";
+      return val || fallback;
+    }
+    var bg = v("--bg", "#ffffff");
+    var fg = v("--fg", "#1a1a1a");
+    var border = v("--border", "#e2e2e2");
+    var accent = v("--accent", "#4f8ef7");
+    var codeBg = v("--code-bg", "#f5f5f5");
+    return {
+      background: bg,
+      edgeLabelBackground: bg,
+      primaryColor: codeBg,
+      mainBkg: codeBg,
+      secondaryColor: codeBg,
+      tertiaryColor: codeBg,
+      clusterBkg: codeBg,
+      primaryTextColor: fg,
+      textColor: fg,
+      primaryBorderColor: border,
+      nodeBorder: border,
+      clusterBorder: border,
+      lineColor: accent,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif'
+    };
+  }
+
+  function findBlocks() {
+    var found = [];
+    document.querySelectorAll("pre code.language-mermaid").forEach(function (code) {
+      var pre = code.parentElement;
+      if (!pre || pre.hasAttribute("data-mermaid-block")) return;
+      pre.setAttribute("data-mermaid-block", "");
+      var container = document.createElement("div");
+      container.className = "mermaid-diagram";
+      pre.insertAdjacentElement("afterend", container);
+      found.push({ pre: pre, source: code.textContent, container: container });
+    });
+    return found;
+  }
+
+  function renderAll() {
+    if (typeof mermaid === "undefined" || !blocks.length) return;
+    generation += 1;
+    var gen = generation;
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      themeVariables: themeVariablesFromCss()
+    });
+    // Rendered one at a time (not in parallel) since mermaid manages a shared
+    // temporary DOM sandbox internally across calls.
+    blocks.reduce(function (chain, block, i) {
+      return chain.then(function () {
+        return mermaid
+          .render("mermaid-diagram-" + gen + "-" + i, block.source)
+          .then(function (result) {
+            if (gen !== generation) return;
+            block.container.innerHTML = result.svg;
+            if (result.bindFunctions) result.bindFunctions(block.container);
+            block.pre.classList.add("mermaid-source-rendered");
+          })
+          .catch(function () {
+            if (gen !== generation) return;
+            block.container.innerHTML = "";
+            block.pre.classList.remove("mermaid-source-rendered");
+          });
+      });
+    }, Promise.resolve());
+  }
+
+  function init() {
+    blocks = findBlocks();
+    if (!blocks.length) return;
+    renderAll();
+    document.addEventListener("tolaria:themechange", renderAll);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
 `;
