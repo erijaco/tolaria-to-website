@@ -688,9 +688,15 @@ export const THEME_JS = `
     if (!isLocalPageLink(href)) return;
     var hashIndex = href.indexOf("#");
     var fragment = hashIndex === -1 ? "" : href.slice(hashIndex);
+    // Removing an existing "?theme=x" (as opposed to "&theme=x") drops the query
+    // string's only "?", so any param that follows it needs one put back, not just
+    // left dangling behind a leading "&".
     var pathAndQuery = (hashIndex === -1 ? href : href.slice(0, hashIndex)).replace(
-      /[?&]theme=(?:light|dark)/,
-      ""
+      /([?&])theme=(?:light|dark)(&)?/,
+      function (_m, lead, trailingAmp) {
+        if (lead === "?" && trailingAmp) return "?";
+        return trailingAmp ? "&" : "";
+      }
     );
     var sep = pathAndQuery.indexOf("?") === -1 ? "?" : "&";
     a.setAttribute("href", pathAndQuery + sep + "theme=" + theme + fragment);

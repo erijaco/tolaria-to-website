@@ -40,8 +40,24 @@ export function buildVaultIndex(notes: NoteFile[]): VaultIndex {
     index.notes.set(note.slug, note);
     index.backlinks.set(note.slug, new Set());
     index.bodyLinks.set(note.slug, new Set());
-    if (!index.byKey.has(note.filenameKey)) index.byKey.set(note.filenameKey, note.slug);
-    if (!index.byKey.has(note.titleKey)) index.byKey.set(note.titleKey, note.slug);
+  }
+
+  // Populated in a deterministic (slug-sorted) order rather than however scanVault's
+  // filesystem walk happened to return notes, so which note wins a filename/title
+  // collision doesn't depend on OS-specific readdir ordering.
+  const byKeyOrder = [...notes].sort((a, b) => a.slug.localeCompare(b.slug));
+  for (const note of byKeyOrder) {
+    for (const key of [note.filenameKey, note.titleKey]) {
+      const existingSlug = index.byKey.get(key);
+      if (!existingSlug) {
+        index.byKey.set(key, note.slug);
+      } else if (existingSlug !== note.slug) {
+        console.warn(
+          `Ambiguous wikilink target "${key}": both "${existingSlug}" and "${note.slug}" ` +
+            `match it; [[wikilinks]] to it resolve to "${existingSlug}" (first alphabetically by path).`
+        );
+      }
+    }
   }
 
   for (const note of notes) {
@@ -76,6 +92,20 @@ export function buildVaultIndex(notes: NoteFile[]): VaultIndex {
     }
     const existing = index.relationships.get(note.slug) ?? [];
     index.relationships.set(note.slug, [...existing, ...edges]);
+  }
+
+  // A note's own explicit edge and another note's automatically-computed inverse edge
+  // can land on the same (field, targetSlug) pair - e.g. two notes both declaring
+  // `related_to` on each other - so dedupe once everything above has been collected.
+  for (const [slug, edges] of index.relationships) {
+    const seen = new Set<string>();
+    const deduped = edges.filter((edge) => {
+      const key = `${edge.field} ${edge.targetSlug}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    index.relationships.set(slug, deduped);
   }
 
   return index;

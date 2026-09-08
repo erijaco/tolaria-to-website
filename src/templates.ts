@@ -10,9 +10,12 @@ const THEME_TOGGLE_BUTTON = `<button type="button" class="theme-toggle" aria-lab
 /**
  * Same redaction rule as body wikilinks: a resolved-but-unpublished target never has
  * its real title surfaced in a public property table, even inside raw frontmatter text.
+ * Strips a `#heading` anchor before the lookup, same as wikilinks.ts's WIKILINK_RE -
+ * otherwise an anchored link's target never matches byKey and falls through to
+ * rendering the raw (unredacted) text.
  */
 function redactWikilinks(s: string, linkIndex: Pick<VaultIndex, "byKey" | "published">): string {
-  return s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t: string, a?: string) => {
+  return s.replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (_m, t: string, a?: string) => {
     const alias = a?.trim();
     const targetSlug = linkIndex.byKey.get(t.trim().toLowerCase());
     if (targetSlug && !linkIndex.published.has(targetSlug)) return alias ?? "(private)";
@@ -139,10 +142,13 @@ export function renderNotePage(args: {
       }>${escapeHtml(typeDef.sidebarLabel ?? typeDef.name)}</span>`
     : "";
 
-  const themeJsHref = cssHref.replace(/style\.css$/, "theme.js");
+  /** Derives another static/ asset's href from cssHref's own (which already accounts
+   * for how deep the current page sits relative to static/). */
+  const staticHref = (filename: string) => cssHref.replace(/style\.css$/, filename);
+  const themeJsHref = staticHref("theme.js");
   const mermaidScripts = hasMermaid
-    ? `<script src="${cssHref.replace(/style\.css$/, "mermaid.min.js")}"></script>
-<script src="${cssHref.replace(/style\.css$/, "mermaid-init.js")}"></script>`
+    ? `<script src="${staticHref("mermaid.min.js")}"></script>
+<script src="${staticHref("mermaid-init.js")}"></script>`
     : "";
 
   return `<!doctype html>

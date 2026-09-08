@@ -6,7 +6,7 @@ import { scanVault } from "./scan.js";
 import { parseNote } from "./parseNote.js";
 import { buildVaultIndex } from "./buildIndex.js";
 import { loadIgnoreMatcher, isNotePublishable } from "./filter.js";
-import { parseAndResolve, renderTreeToHtml } from "./pipeline.js";
+import { parseNoteBody, resolveTreePaths, renderTreeToHtml } from "./pipeline.js";
 import { renderNotePage, renderIndexPage } from "./templates.js";
 import { STYLE_CSS, SEARCH_JS, SIDEBAR_JS, THEME_JS, MERMAID_INIT_JS } from "./staticAssets.js";
 import { outputName, notesHref } from "./outputName.js";
@@ -93,9 +93,20 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   // Resolve wikilinks + record backlinks before stringifying, so backlink
   // sections can be rendered on the very first pass over each note.
   const trees = new Map<string, Root>();
+  // Only the home note (if any) is rendered under a second set of path prefixes below
+  // (its normal notes/ page, plus a root-relative index.html copy) - its pre-resolution
+  // tree is kept here so that second render can reuse the same parse instead of
+  // re-running remark/gfm/callouts/highlights on identical Markdown.
+  let homeBaseTree: Root | undefined;
   for (const note of notes) {
     if (!index.published.has(note.slug)) continue;
-    trees.set(note.slug, parseAndResolve(note, index, true));
+    const base = parseNoteBody(note);
+    if (note.slug === homeSlug) {
+      homeBaseTree = base;
+      trees.set(note.slug, resolveTreePaths(structuredClone(base), note, index, true));
+    } else {
+      trees.set(note.slug, resolveTreePaths(base, note, index, true));
+    }
   }
 
   await fse.emptyDir(outDir);
@@ -171,7 +182,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
 
   if (homeSlug) {
     const homeNote = index.notes.get(homeSlug)!;
-    const homeTree = parseAndResolve(homeNote, index, true, {
+    const homeTree = resolveTreePaths(homeBaseTree!, homeNote, index, true, {
       assetsPrefix: "attachments/",
       notesPrefix: "notes/",
     });
@@ -203,7 +214,11 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
 
   if (siteHasMermaid) {
     const mermaidBundlePath = fileURLToPath(import.meta.resolve("mermaid/dist/mermaid.min.js"));
+    const mermaidLicensePath = fileURLToPath(import.meta.resolve("mermaid/LICENSE"));
     await fse.copyFile(mermaidBundlePath, path.join(outDir, "static", "mermaid.min.js"));
+    // mermaid.min.js's own MIT license text travels alongside it, since a generated
+    // site redistributes that bundle to every visitor (see THIRD_PARTY_NOTICES.md).
+    await fse.copyFile(mermaidLicensePath, path.join(outDir, "static", "mermaid.LICENSE.txt"));
     await fs.promises.writeFile(
       path.join(outDir, "static", "mermaid-init.js"),
       MERMAID_INIT_JS,

@@ -5,7 +5,7 @@ import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 import { visit } from "unist-util-visit";
-import type { Root } from "mdast";
+import type { Code, Root } from "mdast";
 import type { Element, Root as HastRoot, Text } from "hast";
 import { resolveWikilinks } from "./wikilinks.js";
 import { rewriteLocalAssetUrls } from "./rewriteAssets.js";
@@ -22,16 +22,45 @@ export interface RenderPathOptions {
   notesPrefix?: string;
 }
 
-/** Parses a note's Markdown body and resolves wikilinks/asset URLs at the AST level. */
-export function parseAndResolve(
+/**
+ * Normalizes a ```Mermaid / ```MERMAID fence's language tag to lowercase so it's
+ * treated identically to ```mermaid downstream (rehype-highlight's plainText check,
+ * our own hasMermaid detection, and the client-side CSS selector are all exact-string
+ * matches against "mermaid").
+ */
+function normalizeMermaidFences(tree: Root): void {
+  visit(tree, "code", (node: Code) => {
+    if (node.lang && node.lang.toLowerCase() === "mermaid") node.lang = "mermaid";
+  });
+}
+
+/**
+ * Parses a note's Markdown body into an mdast tree, applying every transform that
+ * doesn't depend on where the page ends up living (callouts, highlights, mermaid fence
+ * normalization). The result is plain-JSON-safe and has no wikilinks/asset URLs
+ * resolved yet, so it's safe to `structuredClone` and resolve more than once with
+ * different `RenderPathOptions` - see `resolveTreePaths` - without re-running parsing.
+ */
+export function parseNoteBody(note: NoteFile): Root {
+  const tree = parser.parse(note.bodyMarkdown) as Root;
+  normalizeMermaidFences(tree);
+  transformCallouts(tree);
+  resolveHighlights(tree);
+  return tree;
+}
+
+/**
+ * Resolves wikilinks and local asset URLs on an already-parsed tree (mutates and
+ * returns it), the two transforms whose output depends on the rendered page's own
+ * location via `pathOptions`.
+ */
+export function resolveTreePaths(
+  tree: Root,
   note: NoteFile,
   index: VaultIndex,
   publishedOnly: boolean,
   pathOptions: RenderPathOptions = {}
 ): Root {
-  const tree = parser.parse(note.bodyMarkdown) as Root;
-  transformCallouts(tree);
-  resolveHighlights(tree);
   rewriteLocalAssetUrls(tree, note.relPath, pathOptions.assetsPrefix);
   resolveWikilinks(tree, index, note.slug, publishedOnly, pathOptions.notesPrefix);
   return tree;

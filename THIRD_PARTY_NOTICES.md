@@ -8,6 +8,16 @@ aren't reproduced here.
 The one exception — code copied directly into this repository rather than depended on
 — is the icon shape data in `src/icons.ts`, sourced from the Lucide project.
 
+A related but distinct case: when a note contains a ```mermaid diagram, the build
+copies mermaid's own official browser bundle (`node_modules/mermaid/dist/mermaid.min.js`)
+into that site's `static/` output so it can render client-side (see `src/site.ts`).
+Unlike every other dependency, this one is redistributed to a generated site's
+visitors, not just used by this repo's own build tooling — so its license travels
+alongside it in the output too: `mermaid.LICENSE.txt` is copied into the same
+`static/` directory whenever `mermaid.min.js` is. Mermaid is MIT-licensed
+(Copyright (c) 2014 - 2022 Knut Sveidqvist); see
+https://github.com/mermaid-js/mermaid/blob/master/LICENSE.
+
 ## Lucide
 
 `src/icons.ts` contains SVG path data for icons from [Lucide](https://lucide.dev).
