@@ -61,6 +61,10 @@ body {
 }
 main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
 .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
   max-width: 760px;
   margin: 0 auto;
   padding: 1rem 1.25rem;
