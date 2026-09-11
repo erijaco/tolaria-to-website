@@ -8,6 +8,13 @@ by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), rende
 per-note local graph of its direct connections, copies attachments, and generates a
 client-side search index — no server or network required to browse the output.
 
+Each note page also ships a print stylesheet: printing or exporting to PDF drops the
+navigation chrome, theme/ToC controls, frontmatter table, and `belongs_to`/`has`/
+`related_to` relationship sections, forces light colors regardless of the reader's theme
+choice, keeps headings attached to the content that follows them, and expands any
+collapsed callouts first. The header is replaced with a compact title + type-badge
+masthead in place of the on-screen back/home navigation.
+
 ## Vault conventions supported
 
 - Notes are Markdown files with YAML frontmatter; the first `# H1` is the title.

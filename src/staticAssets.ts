@@ -193,6 +193,7 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   -webkit-mask-size: contain;
   mask-size: contain;
 }
+.print-title { display: none; }
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
 .home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -487,6 +488,53 @@ details.frontmatter table.properties {
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #d73a49; }
 .hljs-string, .hljs-attr { color: #032f62; }
 .hljs-number, .hljs-title { color: #6f42c1; }
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  :root, :root[data-theme="dark"] {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #666;
+    --border: #e2e2e2;
+    --code-bg: #f5f5f5;
+    --highlight-bg: #fbe45c;
+    --highlight-fg: #2b2200;
+  }
+  .theme-toggle, #toc-toggle, .toc-sidebar, .search-box, .sidebar, .local-graph,
+  .back-link, .home-link,
+  details.frontmatter,
+  section.relation-group[data-field="belongs_to"],
+  section.relation-group[data-field="has"],
+  section.relation-group[data-field="related_to"] {
+    display: none !important;
+  }
+  .print-title {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  main, .layout, .layout main, .page-header, .page-header--wide {
+    max-width: none;
+  }
+  .page-header { position: static; }
+  h1, h2, h3, h4, h5, h6,
+  .note-body pre,
+  table.properties,
+  .note-body table,
+  .note-body .callout,
+  .note-body blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}
 `;
 
 export const SEARCH_JS = `
@@ -912,6 +960,30 @@ export const THEME_JS = `
     btn.addEventListener("click", function () {
       applyTheme(currentTheme() === "dark" ? "light" : "dark");
     });
+  });
+})();
+`;
+
+/**
+ * Force-opens every closed <details> except the frontmatter table (foldable callouts,
+ * the index page's type-filter sidebar) just before printing, and restores whichever
+ * ones it opened right after - CSS alone can't reliably make a closed <details>'s
+ * content actually render in print output across browsers, so this needs a JS assist.
+ * The frontmatter table is skipped since STYLE_CSS's @media print block hides it
+ * outright rather than expanding it. Safe to run on pages with no <details> at all.
+ */
+export const PRINT_JS = `
+(function () {
+  var reopened = [];
+  window.addEventListener("beforeprint", function () {
+    document.querySelectorAll("details:not([open]):not(.frontmatter)").forEach(function (d) {
+      d.setAttribute("open", "");
+      reopened.push(d);
+    });
+  });
+  window.addEventListener("afterprint", function () {
+    reopened.forEach(function (d) { d.removeAttribute("open"); });
+    reopened = [];
   });
 })();
 `;

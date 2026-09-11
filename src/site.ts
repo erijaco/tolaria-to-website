@@ -14,6 +14,7 @@ import {
   SIDEBAR_JS,
   TOC_SIDEBAR_JS,
   THEME_JS,
+  PRINT_JS,
   MERMAID_INIT_JS,
 } from "./staticAssets.js";
 import { outputName, notesHref } from "./outputName.js";
@@ -126,6 +127,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   await fs.promises.writeFile(path.join(outDir, "static", "sidebar.js"), SIDEBAR_JS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "toc-sidebar.js"), TOC_SIDEBAR_JS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "theme.js"), THEME_JS, "utf8");
+  await fs.promises.writeFile(path.join(outDir, "static", "print.js"), PRINT_JS, "utf8");
 
   const searchEntries: SearchEntry[] = [];
   let siteHasMermaid = false;

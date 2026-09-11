@@ -117,7 +117,7 @@ export function renderNotePage(args: {
   const relSections = [...relByField.entries()]
     .map(
       ([field, targets]) => `
-      <section class="relation-group">
+      <section class="relation-group" data-field="${escapeHtml(field)}">
         <h3>${escapeHtml(field)}</h3>
         <ul>${targets
           .map((t) => `<li><a href="${notesHref(t.slug, notesPrefix)}">${escapeHtml(t.title)}</a></li>`)
@@ -160,6 +160,7 @@ export function renderNotePage(args: {
   const staticHref = (filename: string) => cssHref.replace(/style\.css$/, filename);
   const themeJsHref = staticHref("theme.js");
   const tocSidebarJsHref = staticHref("toc-sidebar.js");
+  const printJsHref = staticHref("print.js");
   const mermaidScripts = hasMermaid
     ? `<script src="${staticHref("mermaid.min.js")}"></script>
 <script src="${staticHref("mermaid-init.js")}"></script>`
@@ -177,6 +178,7 @@ export function renderNotePage(args: {
 <body>
 <header class="page-header">
   <nav class="header-nav">
+    <span class="print-title">${escapeHtml(note.title)}</span>
     <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
     ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
   </nav>
@@ -197,6 +199,7 @@ export function renderNotePage(args: {
 </main>
 <script src="${themeJsHref}"></script>
 ${hasToc ? `<script src="${tocSidebarJsHref}"></script>` : ""}
+<script src="${printJsHref}"></script>
 ${mermaidScripts}
 </body>
 </html>
@@ -284,6 +287,7 @@ export function renderIndexPage(args: {
 <script src="static/sidebar.js"></script>
 <script src="static/search.js"></script>
 <script src="static/theme.js"></script>
+<script src="static/print.js"></script>
 </body>
 </html>
 `;
