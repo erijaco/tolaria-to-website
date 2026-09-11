@@ -164,6 +164,35 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   -webkit-mask-image: ${iconMaskUrl("moon")};
   mask-image: ${iconMaskUrl("moon")};
 }
+.toc-toggle {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.toc-toggle:hover, .toc-toggle[aria-expanded="true"] { color: var(--fg); background: var(--code-bg); }
+.toc-toggle::before {
+  content: "";
+  display: block;
+  width: 1.05em;
+  height: 1.05em;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("list")};
+  mask-image: ${iconMaskUrl("list")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
 .home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -324,14 +353,19 @@ table.properties th { color: var(--muted); font-weight: 500; white-space: nowrap
 .note-body .callout-quote { --callout-color: #9e9e9e; --callout-bg: rgba(158, 158, 158, 0.08); }
 .note-body .callout-quote > .callout-title::before { -webkit-mask-image: ${iconMaskUrl("quote")}; mask-image: ${iconMaskUrl("quote")}; }
 
-nav.toc {
+/* Default (no-JS) rendering: same always-visible inline box the ToC used before this
+   became a drawer. A header <button> can't open a position:fixed panel without JS, so
+   without the "js" class (added synchronously in <head>, same technique as the theme
+   no-flash script) the ToC stays in its original inline spot and the toggle - which
+   would otherwise do nothing - is hidden below. */
+.toc-sidebar {
   margin: 1.25rem 0 2rem;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.9rem;
 }
-nav.toc .toc-title {
+.toc-sidebar .toc-title {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -339,11 +373,33 @@ nav.toc .toc-title {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
-nav.toc ul { list-style: none; margin: 0; padding-left: 0; }
-nav.toc ul ul { padding-left: 1rem; }
-nav.toc li { padding: 0.15rem 0; }
-nav.toc a { color: var(--fg); text-decoration: none; }
-nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+.toc-sidebar ul { list-style: none; margin: 0; padding-left: 0; }
+.toc-sidebar ul ul { padding-left: 1rem; }
+.toc-sidebar li { padding: 0.15rem 0; }
+.toc-sidebar a { color: var(--fg); text-decoration: none; }
+.toc-sidebar a:hover { color: var(--accent); text-decoration: underline; }
+.toc-sidebar a.is-active { color: var(--accent); font-weight: 600; }
+.toc-toggle { display: none; }
+.js .toc-toggle { display: inline-flex; }
+.js .toc-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 280px;
+  max-width: 85vw;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  z-index: 15;
+}
+.js .toc-sidebar.is-open { transform: translateX(0); }
 
 section.relation-group, section.backlinks { margin-top: 2rem; }
 section.relation-group h3, section.backlinks h3 {
@@ -622,6 +678,17 @@ export const SEARCH_JS = `
 })();
 `;
 
+/**
+ * Same no-flash technique as THEME_INIT_INLINE_JS: run synchronously in <head>, before
+ * first paint, so the "js" class is already present by the time STYLE_CSS's `.js`-gated
+ * rules apply - otherwise a page with the class added later (e.g. at the bottom of
+ * <body>) would render the no-JS fallback for a moment first. This class is what lets
+ * the ToC sidebar (see TOC_SIDEBAR_JS) switch from its always-visible inline fallback to
+ * a JS-driven off-canvas drawer, since a plain <button> can't open that drawer at all
+ * without JS.
+ */
+export const JS_ENABLED_INLINE_JS = `document.documentElement.classList.add("js");`;
+
 export const SIDEBAR_JS = `
 (function () {
   var pills = document.querySelectorAll(".pill");
@@ -644,6 +711,106 @@ export const SIDEBAR_JS = `
       window.dispatchEvent(new CustomEvent("tolaria:typefilter", { detail: { type: type } }));
     });
   });
+})();
+`;
+
+/**
+ * Drives the right-hand ToC drawer: toggling it from the header button, closing it on
+ * Escape, on an outside click, or after following one of its links, and keeping it
+ * docked below the sticky header rather than hardcoding that header's height (which
+ * varies - e.g. a type badge or a long title can push it to two lines). Also runs a
+ * scroll-spy that highlights whichever ToC entry matches the section currently under
+ * the sticky header, so the drawer stays a "where am I" reference even while closed off
+ * to the side (reopening it later shows the right entry already marked).
+ */
+export const TOC_SIDEBAR_JS = `
+(function () {
+  var toggle = document.getElementById("toc-toggle");
+  var sidebar = document.getElementById("toc-sidebar");
+  var header = document.querySelector(".page-header");
+  if (!toggle || !sidebar) return;
+
+  function syncHeaderOffset() {
+    var h = header ? header.offsetHeight : 0;
+    sidebar.style.top = h + "px";
+    sidebar.style.height = "calc(100vh - " + h + "px)";
+  }
+
+  function setOpen(open) {
+    sidebar.classList.toggle("is-open", open);
+    sidebar.setAttribute("aria-hidden", open ? "false" : "true");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) syncHeaderOffset();
+  }
+
+  window.addEventListener("resize", function () {
+    if (sidebar.classList.contains("is-open")) syncHeaderOffset();
+  });
+
+  toggle.addEventListener("click", function () {
+    setOpen(!sidebar.classList.contains("is-open"));
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && sidebar.classList.contains("is-open")) setOpen(false);
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!sidebar.classList.contains("is-open")) return;
+    if (sidebar.contains(e.target) || toggle.contains(e.target)) return;
+    setOpen(false);
+  });
+
+  sidebar.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") setOpen(false);
+  });
+
+  // Scroll-spy: mark the ToC link for whichever heading the reader is currently under.
+  var linkById = {};
+  sidebar.querySelectorAll("a[href^='#']").forEach(function (a) {
+    linkById[a.getAttribute("href").slice(1)] = a;
+  });
+  var headings = Array.prototype.slice
+    .call(document.querySelectorAll(".note-body h1, .note-body h2, .note-body h3, .note-body h4, .note-body h5, .note-body h6"))
+    .filter(function (h) {
+      return linkById[h.id];
+    });
+
+  if (headings.length) {
+    var activeId = null;
+    function setActive(id) {
+      if (id === activeId) return;
+      if (activeId && linkById[activeId]) linkById[activeId].classList.remove("is-active");
+      if (id && linkById[id]) linkById[id].classList.add("is-active");
+      activeId = id;
+    }
+
+    function updateActive() {
+      // The section "current" under the sticky header is the last heading that has
+      // already scrolled up past it - headings are in document order, so once one
+      // hasn't been reached yet, none after it have either.
+      var offset = (header ? header.offsetHeight : 0) + 8;
+      var current = null;
+      for (var i = 0; i < headings.length; i++) {
+        if (headings[i].getBoundingClientRect().top - offset <= 0) current = headings[i].id;
+        else break;
+      }
+      setActive(current);
+    }
+
+    var ticking = false;
+    function onScrollOrResize() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        updateActive();
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+    updateActive();
+  }
 })();
 `;
 

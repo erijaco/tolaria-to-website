@@ -1,11 +1,12 @@
 import type { NoteFile, TypeDef, VaultIndex } from "./types.js";
 import { notesHref } from "./outputName.js";
 import type { HeadingEntry } from "./pipeline.js";
-import { THEME_INIT_INLINE_JS } from "./staticAssets.js";
+import { THEME_INIT_INLINE_JS, JS_ENABLED_INLINE_JS } from "./staticAssets.js";
 import { escapeHtml } from "./html.js";
 import { renderLocalGraph } from "./graph.js";
 
 const THEME_TOGGLE_BUTTON = `<button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>`;
+const TOC_TOGGLE_BUTTON = `<button type="button" id="toc-toggle" class="toc-toggle" aria-label="Table of contents" title="Table of contents" aria-expanded="false" aria-controls="toc-sidebar"></button>`;
 
 /**
  * Same redaction rule as body wikilinks: a resolved-but-unpublished target never has
@@ -131,10 +132,13 @@ export function renderNotePage(args: {
       </details>`
     : "";
 
-  const tocHtml =
-    headings.length >= 2
-      ? `<nav class="toc"><p class="toc-title">Contents</p>${renderTocList(headings)}</nav>`
-      : "";
+  const hasToc = headings.length >= 2;
+  /* Sits in its original inline spot in document order (matters for the no-JS
+   * fallback in STYLE_CSS, which renders it right here rather than as a drawer) - CSS
+   * alone repositions it to the right-hand drawer once JS is available. */
+  const tocHtml = hasToc
+    ? `<aside id="toc-sidebar" class="toc-sidebar" aria-hidden="true"><p class="toc-title">Contents</p>${renderTocList(headings)}</aside>`
+    : "";
 
   const badge = typeDef
     ? `<span class="type-badge"${
@@ -146,6 +150,7 @@ export function renderNotePage(args: {
    * for how deep the current page sits relative to static/). */
   const staticHref = (filename: string) => cssHref.replace(/style\.css$/, filename);
   const themeJsHref = staticHref("theme.js");
+  const tocSidebarJsHref = staticHref("toc-sidebar.js");
   const mermaidScripts = hasMermaid
     ? `<script src="${staticHref("mermaid.min.js")}"></script>
 <script src="${staticHref("mermaid-init.js")}"></script>`
@@ -156,7 +161,7 @@ export function renderNotePage(args: {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>${THEME_INIT_INLINE_JS}</script>
+<script>${THEME_INIT_INLINE_JS}${JS_ENABLED_INLINE_JS}</script>
 <title>${escapeHtml(note.title)}</title>
 <link rel="stylesheet" href="${cssHref}">
 </head>
@@ -168,6 +173,7 @@ export function renderNotePage(args: {
   </nav>
   <div class="header-actions">
     ${badge}
+    ${hasToc ? TOC_TOGGLE_BUTTON : ""}
     ${THEME_TOGGLE_BUTTON}
   </div>
 </header>
@@ -181,6 +187,7 @@ export function renderNotePage(args: {
   ${frontmatterHtml}
 </main>
 <script src="${themeJsHref}"></script>
+${hasToc ? `<script src="${tocSidebarJsHref}"></script>` : ""}
 ${mermaidScripts}
 </body>
 </html>
