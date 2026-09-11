@@ -12,6 +12,11 @@ const WIKILINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g;
  * a generic marker instead — an explicit alias (`[[Note|alias]]`) is the author's own
  * words and is kept, but the real title is never surfaced, so a public page can't leak
  * that a specific private note exists.
+ *
+ * Without an alias, the link's visible text is the target note's actual title rather
+ * than the raw `[[link text]]` the author typed (usually the filename) — those can
+ * drift apart (renames, casing), and the title is what the destination page itself
+ * displays as its heading.
  */
 export function resolveWikilinks(
   tree: Root,
@@ -40,10 +45,11 @@ export function resolveWikilinks(
         index.backlinks.get(targetSlug)?.add(currentSlug);
         index.bodyLinks.get(currentSlug)?.add(targetSlug);
 
+        const targetTitle = index.notes.get(targetSlug)?.title ?? target;
         return {
           type: "link",
           url: notesHref(targetSlug, notesPrefix),
-          children: [{ type: "text", value: alias ?? target }],
+          children: [{ type: "text", value: alias ?? targetTitle }],
         };
       },
     ],

@@ -14,17 +14,26 @@ const TOC_TOGGLE_BUTTON = `<button type="button" id="toc-toggle" class="toc-togg
  * Strips a `#heading` anchor before the lookup, same as wikilinks.ts's WIKILINK_RE -
  * otherwise an anchored link's target never matches byKey and falls through to
  * rendering the raw (unredacted) text.
+ *
+ * When a target resolves and isn't redacted, its own title is shown rather than the raw
+ * `[[link text]]` the author typed - matching wikilinks.ts, and avoiding a mismatch
+ * when a note's filename and its actual title (H1/frontmatter) have drifted apart.
  */
-function redactWikilinks(s: string, linkIndex: Pick<VaultIndex, "byKey" | "published">): string {
+function redactWikilinks(
+  s: string,
+  linkIndex: Pick<VaultIndex, "notes" | "byKey" | "published">
+): string {
   return s.replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (_m, t: string, a?: string) => {
     const alias = a?.trim();
-    const targetSlug = linkIndex.byKey.get(t.trim().toLowerCase());
-    if (targetSlug && !linkIndex.published.has(targetSlug)) return alias ?? "(private)";
-    return alias ?? t.trim();
+    const target = t.trim();
+    const targetSlug = linkIndex.byKey.get(target.toLowerCase());
+    if (!targetSlug) return alias ?? target;
+    if (!linkIndex.published.has(targetSlug)) return alias ?? "(private)";
+    return alias ?? linkIndex.notes.get(targetSlug)?.title ?? target;
   });
 }
 
-function stringifyValue(v: unknown, linkIndex: Pick<VaultIndex, "byKey" | "published">): string {
+function stringifyValue(v: unknown, linkIndex: Pick<VaultIndex, "notes" | "byKey" | "published">): string {
   if (Array.isArray(v)) return v.map((x) => redactWikilinks(String(x), linkIndex)).join(", ");
   if (v === null || v === undefined) return "";
   if (typeof v === "object") return JSON.stringify(v);
@@ -63,7 +72,7 @@ export function renderNotePage(args: {
   backlinks: NoteFile[];
   outboundLinks: NoteFile[];
   types: Map<string, TypeDef>;
-  linkIndex: Pick<VaultIndex, "byKey" | "published">;
+  linkIndex: Pick<VaultIndex, "notes" | "byKey" | "published">;
   /** Path overrides for rendering this note somewhere other than its default notes/ location. */
   cssHref?: string;
   backHref?: string;
