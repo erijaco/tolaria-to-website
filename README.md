@@ -43,7 +43,10 @@ for the source vault folder, the destination folder, and (optionally) a note to 
 the home page — nothing to memorize for a one-off run.
 
 Options (skip the prompts by passing flags, e.g. in scripts or CI):
-`pnpm run site:build -- --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile --home "Note Name"`.
+`pnpm run site:build --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile --home "Note Name"`.
+Don't put a bare `--` before the flags — pnpm (unlike npm) forwards it through literally to
+the underlying command, and commander then treats it as "end of options" and silently
+ignores every flag after it, falling back to the defaults instead of erroring.
 
 - `--home <note>`: slug, filename, or title of a note to render as the site's
   `index.html`, in place of the auto-generated nav/search page (which then moves to

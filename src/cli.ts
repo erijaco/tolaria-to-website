@@ -12,6 +12,12 @@ program
 program
   .command("build")
   .description("Render the vault to a static site")
+  // `build` takes no positional arguments - anything left over is almost always a stray
+  // "--" (pnpm, unlike npm, forwards a literal "--" separator through to the script
+  // instead of stripping it; commander then treats it as "end of options" and would
+  // otherwise silently discard every flag after it rather than parsing them, quietly
+  // falling back to defaults). Erroring here surfaces that immediately instead.
+  .allowExcessArguments(false)
   .option("-v, --vault <path>", "path to the vault directory")
   .option("-o, --out <path>", "output directory for the built site")
   .option("-i, --ignore-file <path>", "path to a .gitignore-style publish-exclude file")
