@@ -127,10 +127,14 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
 .header-actions { display: flex; align-items: center; gap: 0.75rem; }
 .theme-toggle {
   appearance: none;
+  font-family: inherit;
   border: 1px solid var(--border);
   background: transparent;
   cursor: pointer;
   padding: 0.35rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
   border-radius: 6px;
   color: var(--muted);
   display: inline-flex;
@@ -166,10 +170,14 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
 }
 .toc-toggle {
   appearance: none;
+  font-family: inherit;
   border: 1px solid var(--border);
   background: transparent;
   cursor: pointer;
   padding: 0.35rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
   border-radius: 6px;
   color: var(--muted);
   display: inline-flex;
@@ -439,10 +447,14 @@ section.relation-group h3, section.backlinks h3 {
 .graph-edge.is-dimmed { opacity: 0.15; }
 .graph-toggle {
   appearance: none;
+  font-family: inherit;
   border: 1px solid var(--border);
   background: transparent;
   cursor: pointer;
   padding: 0.35rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
   border-radius: 6px;
   color: var(--muted);
   display: inline-flex;
@@ -526,14 +538,17 @@ details.frontmatter table.properties {
 .nav-group li, section.relation-group li, section.backlinks li { padding: 0.15rem 0; }
 .search-box { position: relative; flex: 0 1 320px; min-width: 180px; }
 #search-input {
+  font-family: inherit;
   font-size: 0.95rem;
   padding: 0.4rem 1.9rem 0.4rem 0.6rem;
+  height: 2.1rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
   color: var(--fg);
   width: 100%;
 }
+#search-input::placeholder { color: var(--muted); opacity: 1; }
 .search-kbd {
   position: absolute;
   right: 0.5rem;
