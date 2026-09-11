@@ -8,6 +8,10 @@ import { renderLocalGraph } from "./graph.js";
 const THEME_TOGGLE_BUTTON = `<button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>`;
 const TOC_TOGGLE_BUTTON = `<button type="button" id="toc-toggle" class="toc-toggle" aria-label="Table of contents" title="Table of contents" aria-expanded="false" aria-controls="toc-sidebar"></button>`;
 
+function graphToggleLink(href: string): string {
+  return `<a class="graph-toggle" href="${href}" aria-label="Graph view" title="Graph view"></a>`;
+}
+
 /**
  * Same redaction rule as body wikilinks: a resolved-but-unpublished target never has
  * its real title surfaced in a public property table, even inside raw frontmatter text.
@@ -82,6 +86,7 @@ export function renderNotePage(args: {
   homeHref?: string;
   /** Whether the rendered body contains a ```mermaid fenced code block. */
   hasMermaid?: boolean;
+  graphHref?: string;
 }): string {
   const {
     note,
@@ -99,6 +104,7 @@ export function renderNotePage(args: {
     notesPrefix = "",
     homeHref,
     hasMermaid = false,
+    graphHref = "../graph.html",
   } = args;
 
   const propRows = Object.entries(note.frontmatter)
@@ -185,6 +191,7 @@ export function renderNotePage(args: {
   <div class="header-actions">
     ${badge}
     ${hasToc ? TOC_TOGGLE_BUTTON : ""}
+    ${graphToggleLink(graphHref)}
     ${THEME_TOGGLE_BUTTON}
   </div>
 </header>
@@ -271,6 +278,7 @@ export function renderIndexPage(args: {
       <input id="search-input" type="search" placeholder="Search notes..." title="Try: type:Project keyword" autocomplete="off">
       <kbd class="search-kbd">/</kbd>
     </div>
+    ${graphToggleLink("graph.html")}
     ${THEME_TOGGLE_BUTTON}
   </div>
 </header>
@@ -288,6 +296,54 @@ export function renderIndexPage(args: {
 <script src="static/search.js"></script>
 <script src="static/theme.js"></script>
 <script src="static/print.js"></script>
+</body>
+</html>
+`;
+}
+
+export function renderGraphPage(args: {
+  svg: string;
+  noteCount: number;
+  /** Path overrides for rendering this note somewhere other than its default notes/ location. */
+  backHref?: string;
+  backLabel?: string;
+  /** When a note has been picked as the home page, this links directly back to it. */
+  homeHref?: string;
+}): string {
+  const { svg, noteCount, backHref = "index.html", backLabel = "All notes", homeHref } = args;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>${THEME_INIT_INLINE_JS}${JS_ENABLED_INLINE_JS}</script>
+<title>Graph</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="page-header page-header--wide">
+  <nav class="header-nav">
+    <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
+    ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
+  </nav>
+  <div class="header-actions">
+    ${THEME_TOGGLE_BUTTON}
+  </div>
+</header>
+<main>
+  <p class="graph-count">${noteCount} note${noteCount === 1 ? "" : "s"}</p>
+  <div class="site-graph-wrap">
+    <div class="graph-controls">
+      <button type="button" id="graph-zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" id="graph-zoom-out" aria-label="Zoom out" title="Zoom out">&minus;</button>
+    </div>
+    <div class="site-graph">${svg}</div>
+  </div>
+</main>
+<script src="static/theme.js"></script>
+<script src="static/print.js"></script>
+<script src="static/site-graph.js"></script>
 </body>
 </html>
 `;

@@ -7,7 +7,7 @@ import { parseNote } from "./parseNote.js";
 import { buildVaultIndex } from "./buildIndex.js";
 import { loadIgnoreMatcher, isNotePublishable } from "./filter.js";
 import { parseNoteBody, resolveTreePaths, renderTreeToHtml } from "./pipeline.js";
-import { renderNotePage, renderIndexPage } from "./templates.js";
+import { renderNotePage, renderIndexPage, renderGraphPage } from "./templates.js";
 import {
   STYLE_CSS,
   SEARCH_JS,
@@ -15,8 +15,10 @@ import {
   TOC_SIDEBAR_JS,
   THEME_JS,
   PRINT_JS,
+  SITE_GRAPH_JS,
   MERMAID_INIT_JS,
 } from "./staticAssets.js";
+import { collectSiteGraphData, layoutSiteGraph, renderSiteGraphSvg } from "./siteGraph.js";
 import { outputName, notesHref } from "./outputName.js";
 import type { Root } from "mdast";
 import type { NoteFile, VaultIndex } from "./types.js";
@@ -128,6 +130,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
   await fs.promises.writeFile(path.join(outDir, "static", "toc-sidebar.js"), TOC_SIDEBAR_JS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "theme.js"), THEME_JS, "utf8");
   await fs.promises.writeFile(path.join(outDir, "static", "print.js"), PRINT_JS, "utf8");
+  await fs.promises.writeFile(path.join(outDir, "static", "site-graph.js"), SITE_GRAPH_JS, "utf8");
 
   const searchEntries: SearchEntry[] = [];
   let siteHasMermaid = false;
@@ -182,6 +185,23 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
     await fse.copyFile(abs, dest);
   }
 
+  const { nodes: graphNodes, edges: graphEdges } = collectSiteGraphData(index);
+  const graphPositions = layoutSiteGraph(graphNodes, graphEdges);
+  const graphSvg = renderSiteGraphSvg({
+    nodes: graphNodes,
+    edges: graphEdges,
+    positions: graphPositions,
+    types: index.types,
+    notesPrefix: "notes/",
+  });
+  const graphHtml = renderGraphPage({
+    svg: graphSvg,
+    noteCount: graphNodes.length,
+    backHref: navFilename,
+    homeHref: homeSlug ? "index.html" : undefined,
+  });
+  await fs.promises.writeFile(path.join(outDir, "graph.html"), graphHtml, "utf8");
+
   const publishedNotes = notes.filter((n) => index.published.has(n.slug) && !n.isTypeDoc);
   const navHtml = renderIndexPage({
     notes: publishedNotes,
@@ -215,6 +235,7 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       backLabel: "All notes",
       notesPrefix: "notes/",
       hasMermaid: homeHasMermaid,
+      graphHref: "graph.html",
     });
     await fs.promises.writeFile(path.join(outDir, "index.html"), homeHtml, "utf8");
   }

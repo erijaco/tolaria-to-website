@@ -427,6 +427,72 @@ section.relation-group h3, section.backlinks h3 {
 .graph-node-link:hover .graph-label { fill: var(--fg); text-decoration: underline; }
 .graph-node-link:hover .graph-edge { stroke: var(--accent); }
 .graph-node-link:hover .graph-node { stroke: var(--accent); }
+.graph-node-link.is-dimmed { opacity: 0.25; }
+.graph-edge.is-dimmed { opacity: 0.15; }
+.graph-toggle {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  text-decoration: none;
+}
+.graph-toggle:hover { color: var(--fg); background: var(--code-bg); }
+.graph-toggle::before {
+  content: "";
+  display: block;
+  width: 1.05em;
+  height: 1.05em;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("radar")};
+  mask-image: ${iconMaskUrl("radar")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.site-graph {
+  margin: 1.5rem auto;
+  max-width: 980px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+.site-graph:active { cursor: grabbing; }
+.site-graph svg { display: block; width: 100%; height: 75vh; }
+#site-graph-viewport { transform-origin: 0 0; }
+.graph-controls {
+  display: none;
+  position: absolute;
+  margin: 0.75rem;
+  gap: 0.35rem;
+}
+.js .graph-controls { display: flex; }
+.graph-controls button {
+  appearance: none;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.graph-controls button:hover { background: var(--code-bg); }
+.site-graph-wrap { position: relative; }
+.graph-count { color: var(--muted); font-size: 0.85rem; margin: 0 0 0.5rem; }
 details.frontmatter {
   margin-top: 3rem;
   padding-top: 1rem;
@@ -505,6 +571,7 @@ details.frontmatter table.properties {
     --highlight-fg: #2b2200;
   }
   .theme-toggle, #toc-toggle, .toc-sidebar, .search-box, .sidebar, .local-graph,
+  .graph-toggle, .site-graph, .graph-controls,
   .back-link, .home-link,
   details.frontmatter,
   section.relation-group[data-field="belongs_to"],
@@ -984,6 +1051,112 @@ export const PRINT_JS = `
   window.addEventListener("afterprint", function () {
     reopened.forEach(function (d) { d.removeAttribute("open"); });
     reopened = [];
+  });
+})();
+`;
+
+/**
+ * Progressive-enhancement pan/zoom/hover-highlight for the site-wide graph page
+ * (graph.html). The build-time SVG (see siteGraph.ts) is already fully laid out and
+ * clickable without this - pan/zoom only translate/scale a wrapping <g> (the SVG's own
+ * viewBox never changes), so there's no client-side layout engine here, just transform
+ * math and classList toggling. Click-to-navigate needs no JS at all since every node is
+ * a real <a href>.
+ */
+export const SITE_GRAPH_JS = `
+(function () {
+  var wrap = document.querySelector(".site-graph");
+  var viewport = document.getElementById("site-graph-viewport");
+  if (!wrap || !viewport) return;
+
+  var scale = 1;
+  var tx = 0;
+  var ty = 0;
+  var MIN_SCALE = 0.25;
+  var MAX_SCALE = 3;
+
+  function apply() {
+    viewport.setAttribute("transform", "translate(" + tx + " " + ty + ") scale(" + scale + ")");
+  }
+
+  function zoomBy(factor, cx, cy) {
+    var next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+    var ratio = next / scale;
+    tx = cx - (cx - tx) * ratio;
+    ty = cy - (cy - ty) * ratio;
+    scale = next;
+    apply();
+  }
+
+  wrap.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var rect = wrap.getBoundingClientRect();
+    zoomBy(e.deltaY < 0 ? 1.1 : 0.9, e.clientX - rect.left, e.clientY - rect.top);
+  }, { passive: false });
+
+  var zoomIn = document.getElementById("graph-zoom-in");
+  var zoomOut = document.getElementById("graph-zoom-out");
+  if (zoomIn) zoomIn.addEventListener("click", function () {
+    var rect = wrap.getBoundingClientRect();
+    zoomBy(1.2, rect.width / 2, rect.height / 2);
+  });
+  if (zoomOut) zoomOut.addEventListener("click", function () {
+    var rect = wrap.getBoundingClientRect();
+    zoomBy(0.8, rect.width / 2, rect.height / 2);
+  });
+
+  var dragging = false;
+  var lastX = 0;
+  var lastY = 0;
+
+  function pointerDown(x, y) {
+    dragging = true;
+    lastX = x;
+    lastY = y;
+  }
+  function pointerMove(x, y) {
+    if (!dragging) return;
+    tx += x - lastX;
+    ty += y - lastY;
+    lastX = x;
+    lastY = y;
+    apply();
+  }
+  function pointerUp() {
+    dragging = false;
+  }
+
+  wrap.addEventListener("mousedown", function (e) { pointerDown(e.clientX, e.clientY); });
+  window.addEventListener("mousemove", function (e) { pointerMove(e.clientX, e.clientY); });
+  window.addEventListener("mouseup", pointerUp);
+
+  wrap.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    pointerDown(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  wrap.addEventListener("touchmove", function (e) {
+    if (e.touches.length !== 1) return;
+    pointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener("touchend", pointerUp);
+
+  var links = wrap.querySelectorAll(".graph-node-link");
+  var edges = wrap.querySelectorAll(".graph-edge");
+  links.forEach(function (link) {
+    link.addEventListener("mouseenter", function () {
+      var slug = link.getAttribute("data-slug");
+      links.forEach(function (l) {
+        l.classList.toggle("is-dimmed", l.getAttribute("data-slug") !== slug);
+      });
+      edges.forEach(function (edge) {
+        var touches = edge.getAttribute("data-a") === slug || edge.getAttribute("data-b") === slug;
+        edge.classList.toggle("is-dimmed", !touches);
+      });
+    });
+    link.addEventListener("mouseleave", function () {
+      links.forEach(function (l) { l.classList.remove("is-dimmed"); });
+      edges.forEach(function (e) { e.classList.remove("is-dimmed"); });
+    });
   });
 })();
 `;

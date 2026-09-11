@@ -6,7 +6,11 @@ Builds an offline-capable static website from a [Tolaria](https://tolaria.md) va
 Markdown notes: resolves `[[wikilinks]]`, computes relationships/backlinks, groups notes
 by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), renders a
 per-note local graph of its direct connections, copies attachments, and generates a
-client-side search index — no server or network required to browse the output.
+client-side search index — no server or network required to browse the output. A
+site-wide graph page (`graph.html`, linked from every page's header) lays out the whole
+vault's relationship/link structure at build time and adds pan/zoom/hover-highlight as a
+progressive enhancement — every node is a real link, so the page is fully navigable even
+with JavaScript disabled.
 
 Each note page also ships a print stylesheet: printing or exporting to PDF drops the
 navigation chrome, theme/ToC controls, frontmatter table, and `belongs_to`/`has`/
@@ -136,3 +140,6 @@ covered by the license (it's just example input for the tool).
 - Custom (non-`belongs_to`/`has`/`related_to`) relationship fields are shown but have no
   computed inverse, matching notes only get an edge if they explicitly declare it.
 - No incremental/watch build — every run rebuilds the whole site.
+- The site-wide graph (`graph.html`) lays out comfortably up to roughly 1500 published
+  notes; past that, build time and layout quality degrade gradually rather than
+  breaking outright — there's no hard cutoff, so no note is ever silently dropped.

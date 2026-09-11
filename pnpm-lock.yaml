@@ -11,6 +11,9 @@ importers:
       commander:
         specifier: 12.1.0
         version: 12.1.0
+      d3-force:
+        specifier: 3.0.0
+        version: 3.0.0
       fs-extra:
         specifier: 11.4.0
         version: 11.4.0
@@ -51,6 +54,9 @@ importers:
         specifier: 5.1.0
         version: 5.1.0
     devDependencies:
+      '@types/d3-force':
+        specifier: 3.0.10
+        version: 3.0.10
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4
