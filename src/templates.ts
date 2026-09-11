@@ -138,7 +138,16 @@ export function renderNotePage(args: {
         .join("")}</ul></section>`
     : "";
 
-  const graphHtml = renderLocalGraph({ note, relationships, backlinks, outboundLinks, types, notesPrefix });
+  const graphHtml = renderLocalGraph({
+    note,
+    relationships,
+    backlinks,
+    outboundLinks,
+    types,
+    notesPrefix,
+    typeDef,
+    graphHref,
+  });
 
   const frontmatterHtml = propRows
     ? `<details class="frontmatter">

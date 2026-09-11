@@ -417,6 +417,14 @@ section.relation-group h3, section.backlinks h3 {
   color: var(--muted);
 }
 .local-graph svg { display: block; width: 100%; height: auto; max-height: 420px; }
+.local-graph-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.local-graph-link:hover { text-decoration: underline; }
 .graph-edge { stroke: var(--border); stroke-width: 1; }
 .graph-edge--backlink-only { stroke-dasharray: 3 3; }
 .graph-node { fill: var(--type-color, var(--muted)); stroke: var(--bg); stroke-width: 1.5; }
@@ -1142,22 +1150,52 @@ export const SITE_GRAPH_JS = `
 
   var links = wrap.querySelectorAll(".graph-node-link");
   var edges = wrap.querySelectorAll(".graph-edge");
+
+  function applyHighlight(slug) {
+    var target = null;
+    links.forEach(function (l) {
+      var match = l.getAttribute("data-slug") === slug;
+      l.classList.toggle("is-dimmed", !match);
+      if (match) target = l;
+    });
+    edges.forEach(function (edge) {
+      var touches = edge.getAttribute("data-a") === slug || edge.getAttribute("data-b") === slug;
+      edge.classList.toggle("is-dimmed", !touches);
+    });
+    return target;
+  }
+
+  function clearHighlight() {
+    links.forEach(function (l) { l.classList.remove("is-dimmed"); });
+    edges.forEach(function (e) { e.classList.remove("is-dimmed"); });
+  }
+
   links.forEach(function (link) {
     link.addEventListener("mouseenter", function () {
-      var slug = link.getAttribute("data-slug");
-      links.forEach(function (l) {
-        l.classList.toggle("is-dimmed", l.getAttribute("data-slug") !== slug);
-      });
-      edges.forEach(function (edge) {
-        var touches = edge.getAttribute("data-a") === slug || edge.getAttribute("data-b") === slug;
-        edge.classList.toggle("is-dimmed", !touches);
-      });
+      applyHighlight(link.getAttribute("data-slug"));
     });
-    link.addEventListener("mouseleave", function () {
-      links.forEach(function (l) { l.classList.remove("is-dimmed"); });
-      edges.forEach(function (e) { e.classList.remove("is-dimmed"); });
-    });
+    link.addEventListener("mouseleave", clearHighlight);
   });
+
+  // Deep-linked from a note's local graph ("<Type> neighbourhood" link, see graph.ts) as
+  // graph.html?focus=<slug> - highlights that note the same way hovering it would, and
+  // centers/zooms on it using the node's build-time-baked cx/cy (already exact SVG
+  // user-space coordinates, unlike the pixel-driven pan/zoom above).
+  var focusSlug = new URLSearchParams(location.search).get("focus");
+  if (focusSlug) {
+    var focused = applyHighlight(focusSlug);
+    var circle = focused && focused.querySelector("circle");
+    if (circle) {
+      var svg = document.getElementById("site-graph-svg");
+      var vb = svg.viewBox.baseVal;
+      var nx = parseFloat(circle.getAttribute("cx"));
+      var ny = parseFloat(circle.getAttribute("cy"));
+      scale = Math.max(scale, 1.5);
+      tx = vb.width / 2 - nx * scale;
+      ty = vb.height / 2 - ny * scale;
+      apply();
+    }
+  }
 })();
 `;
 

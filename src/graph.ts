@@ -47,8 +47,20 @@ export function renderLocalGraph(args: {
   outboundLinks: NoteFile[];
   types: Map<string, TypeDef>;
   notesPrefix?: string;
+  typeDef?: TypeDef;
+  /** Path to the site-wide graph page, used to build the "<Type> neighbourhood" deep link. */
+  graphHref?: string;
 }): string {
-  const { note, relationships, backlinks, outboundLinks, types, notesPrefix = "" } = args;
+  const {
+    note,
+    relationships,
+    backlinks,
+    outboundLinks,
+    types,
+    notesPrefix = "",
+    typeDef,
+    graphHref = "../graph.html",
+  } = args;
   const neighbors = collectNeighbors(relationships, backlinks, outboundLinks);
   if (!neighbors.length) return "";
 
@@ -99,5 +111,8 @@ export function renderLocalGraph(args: {
       <text class="graph-label graph-label--center" x="${cx}" y="${cy + CENTER_R + 14}" text-anchor="middle">${escapeHtml(truncateTitle(note.title))}</text>
       ${nodesSvg}
     </svg>
+    <a class="local-graph-link" href="${graphHref}?focus=${encodeURIComponent(note.slug)}">${escapeHtml(
+    `${typeDef ? typeDef.sidebarLabel ?? typeDef.name : "Note"} neighbourhood`
+  )} &rarr;</a>
   </section>`;
 }
