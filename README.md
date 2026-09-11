@@ -68,6 +68,16 @@ ignores every flag after it, falling back to the defaults instead of erroring.
 The workflow below is one way to publish the built site — entirely optional, and
 independent of the local `site:build` command, which works standalone with no CI setup.
 
+**Currently disabled.** The workflow is unconfigured (see Setup below) and was failing
+on every push, so it's been turned off via `gh workflow disable "Publish vault site"` to
+stop the failure-notification emails and pointless CI runs. This is a GitHub-side
+setting, not a file change — nothing here needs undoing before it can run again. Finish
+the setup steps below, then re-enable it with:
+
+```sh
+gh workflow enable "Publish vault site"
+```
+
 `.github/workflows/publish.yml` builds the site on every push to `main` and pushes the
 contents of `_site/` to a **different, public** repository — the vault source (which may
 contain excluded/private notes) never leaves this repo.
