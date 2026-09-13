@@ -201,7 +201,7 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   -webkit-mask-size: contain;
   mask-size: contain;
 }
-.print-title { display: none; }
+.print-breadcrumb { display: none; }
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
 .home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -595,17 +595,23 @@ details.frontmatter table.properties {
   }
   .theme-toggle, #toc-toggle, .toc-sidebar, .search-box, .sidebar, .local-graph,
   .graph-toggle, .site-graph, .graph-controls,
-  .back-link, .home-link,
+  .back-link, .home-link, .type-badge,
   details.frontmatter,
   section.relation-group[data-field="belongs_to"],
   section.relation-group[data-field="has"],
   section.relation-group[data-field="related_to"] {
     display: none !important;
   }
-  .print-title {
+  .print-breadcrumb {
     display: inline-block;
-    font-weight: 600;
+    color: var(--muted);
+  }
+  .print-breadcrumb-current {
     color: var(--fg);
+    font-weight: 600;
+  }
+  .print-breadcrumb-sep {
+    margin: 0 0.35em;
   }
   main, .layout, .layout main, .page-header, .page-header--wide {
     max-width: none;

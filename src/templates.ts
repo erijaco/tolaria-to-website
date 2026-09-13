@@ -164,6 +164,16 @@ export function renderNotePage(args: {
     ? `<aside id="toc-sidebar" class="toc-sidebar" aria-hidden="true"><p class="toc-title">Contents</p>${renderTocList(headings)}</aside>`
     : "";
 
+  const typeLabel = typeDef ? typeDef.sidebarLabel ?? typeDef.name : note.typeName;
+  const breadcrumbSegments = typeLabel ? [typeLabel, note.title] : [note.title];
+  const printBreadcrumb = breadcrumbSegments
+    .map((seg, i, all) =>
+      i === all.length - 1
+        ? `<span class="print-breadcrumb-current">${escapeHtml(seg)}</span>`
+        : `<span>${escapeHtml(seg)}</span>`
+    )
+    .join(' <span class="print-breadcrumb-sep">/</span> ');
+
   const badge = typeDef
     ? `<span class="type-badge"${
         typeDef.color ? ` style="--type-color:${escapeHtml(typeDef.color)}"` : ""
@@ -193,7 +203,7 @@ export function renderNotePage(args: {
 <body>
 <header class="page-header">
   <nav class="header-nav">
-    <span class="print-title">${escapeHtml(note.title)}</span>
+    <span class="print-breadcrumb">${printBreadcrumb}</span>
     <a class="back-link" href="${backHref}">&larr; ${escapeHtml(backLabel)}</a>
     ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
   </nav>
