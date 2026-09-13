@@ -445,6 +445,9 @@ section.relation-group h3, section.backlinks h3 {
 .graph-node-link:hover .graph-node { stroke: var(--accent); }
 .graph-node-link.is-dimmed { opacity: 0.25; }
 .graph-edge.is-dimmed { opacity: 0.15; }
+.js .graph-node-link:hover .graph-node { cursor: grab; }
+.graph-node-link.is-dragging .graph-node { cursor: grabbing; stroke: var(--accent); stroke-width: 2.5; }
+.graph-node-link.is-dragging .graph-label { fill: var(--fg); font-weight: 600; }
 .graph-toggle {
   appearance: none;
   font-family: inherit;
@@ -1172,12 +1175,15 @@ export const SITE_GRAPH_JS = `
     dragging = false;
   }
 
-  wrap.addEventListener("mousedown", function (e) { pointerDown(e.clientX, e.clientY); });
+  wrap.addEventListener("mousedown", function (e) {
+    if (e.target.closest(".graph-node-link")) return;
+    pointerDown(e.clientX, e.clientY);
+  });
   window.addEventListener("mousemove", function (e) { pointerMove(e.clientX, e.clientY); });
   window.addEventListener("mouseup", pointerUp);
 
   wrap.addEventListener("touchstart", function (e) {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1 || e.target.closest(".graph-node-link")) return;
     pointerDown(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
   wrap.addEventListener("touchmove", function (e) {
@@ -1234,6 +1240,169 @@ export const SITE_GRAPH_JS = `
       apply();
     }
   }
+})();
+`;
+
+/**
+ * Obsidian-style drag physics for the site-wide graph, layered on top of the static,
+ * build-time-laid-out SVG from siteGraph.ts. Kept as its own script (rather than folded
+ * into SITE_GRAPH_JS) so it can be omitted entirely - via renderGraphPage's `hasPhysics`
+ * flag - when the vendored graph-physics.min.js bundle wasn't written (empty graph).
+ *
+ * Seeds a live d3-force simulation from the DOM's already-baked cx/cy/data-r attributes
+ * so there is zero visual jump on load, then keeps it fully idle (alpha 0) until a node
+ * is actually dragged past a small movement threshold, at which point it reheats
+ * (alphaTarget) so linked neighbors react, and cools back down on release. A dropped
+ * node stays pinned (fx/fy are never cleared) rather than springing back - d3-force's
+ * own alpha decay naturally stops the simulation's timer once things settle, so no
+ * manual "stop ticking" bookkeeping is needed. Degrades to a complete no-op (page stays
+ * fully static/navigable) if the physics bundle didn't load, mirroring how a dead
+ * wikilink or a mermaid render failure degrade elsewhere in this codebase.
+ */
+export const GRAPH_DRAG_JS = `
+(function () {
+  if (typeof d3 === "undefined") return;
+  var wrap = document.querySelector(".site-graph");
+  var svg = document.getElementById("site-graph-svg");
+  var viewport = document.getElementById("site-graph-viewport");
+  if (!wrap || !svg || !viewport) return;
+
+  var DRAG_THRESHOLD = 4;
+  var DRAG_ALPHA_TARGET = 0.3;
+
+  var circleBySlug = {};
+  var textBySlug = {};
+  var simNodesById = {};
+  var simNodes = [];
+  var simLinks = [];
+  var edgeEls = [];
+
+  wrap.querySelectorAll(".graph-node-link").forEach(function (link) {
+    var slug = link.getAttribute("data-slug");
+    var circle = link.querySelector("circle");
+    var text = link.querySelector("text");
+    if (!slug || !circle) return;
+    circleBySlug[slug] = circle;
+    textBySlug[slug] = text;
+    var node = {
+      id: slug,
+      r: parseFloat(circle.getAttribute("data-r")) || 6,
+      x: parseFloat(circle.getAttribute("cx")),
+      y: parseFloat(circle.getAttribute("cy"))
+    };
+    simNodesById[slug] = node;
+    simNodes.push(node);
+  });
+
+  if (!simNodes.length) return;
+
+  wrap.querySelectorAll(".graph-edge").forEach(function (line) {
+    var a = line.getAttribute("data-a");
+    var b = line.getAttribute("data-b");
+    if (!a || !b) return;
+    simLinks.push({ source: a, target: b });
+    edgeEls.push({ el: line, a: a, b: b });
+  });
+
+  var sim = d3.forceSimulation(simNodes)
+    .force("charge", d3.forceManyBody().strength(-140))
+    .force("link", d3.forceLink(simLinks).id(function (d) { return d.id; }).distance(80))
+    .force("collide", d3.forceCollide(function (d) { return d.r + 18; }))
+    .alpha(0)
+    .stop();
+
+  sim.on("tick", function () {
+    simNodes.forEach(function (n) {
+      var circle = circleBySlug[n.id];
+      var text = textBySlug[n.id];
+      if (circle) { circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y); }
+      if (text) { text.setAttribute("x", n.x); text.setAttribute("y", n.y + n.r + 12); }
+    });
+    edgeEls.forEach(function (e) {
+      var na = simNodesById[e.a];
+      var nb = simNodesById[e.b];
+      if (!na || !nb) return;
+      e.el.setAttribute("x1", na.x);
+      e.el.setAttribute("y1", na.y);
+      e.el.setAttribute("x2", nb.x);
+      e.el.setAttribute("y2", nb.y);
+    });
+  });
+
+  // Composes both the SVG's viewBox scaling and site-graph.js's own manual pan/zoom
+  // transform on #site-graph-viewport in one step, so this script never needs to know
+  // about that script's private tx/ty/scale state.
+  function toSvgPoint(clientX, clientY) {
+    var pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    return pt.matrixTransform(viewport.getScreenCTM().inverse());
+  }
+
+  var candidate = null;
+  var justDraggedSlug = null;
+
+  function startCandidate(link, clientX, clientY) {
+    var node = simNodesById[link.getAttribute("data-slug")];
+    if (!node) return;
+    candidate = { node: node, link: link, startX: clientX, startY: clientY, moved: false };
+  }
+
+  function moveCandidate(clientX, clientY) {
+    if (!candidate) return;
+    if (!candidate.moved) {
+      if (Math.hypot(clientX - candidate.startX, clientY - candidate.startY) < DRAG_THRESHOLD) return;
+      candidate.moved = true;
+      sim.alphaTarget(DRAG_ALPHA_TARGET).restart();
+      candidate.link.classList.add("is-dragging");
+    }
+    var p = toSvgPoint(clientX, clientY);
+    candidate.node.fx = p.x;
+    candidate.node.fy = p.y;
+  }
+
+  function endCandidate() {
+    if (!candidate) return;
+    if (candidate.moved) {
+      sim.alphaTarget(0);
+      candidate.link.classList.remove("is-dragging");
+      // Dropped nodes stay pinned (fx/fy intentionally left set) - only the upcoming
+      // click on this same link is suppressed, so the drag doesn't also navigate.
+      justDraggedSlug = candidate.node.id;
+      setTimeout(function () { justDraggedSlug = null; }, 0);
+    }
+    candidate = null;
+  }
+
+  wrap.addEventListener("mousedown", function (e) {
+    var link = e.target.closest(".graph-node-link");
+    if (!link) return;
+    e.preventDefault();
+    startCandidate(link, e.clientX, e.clientY);
+  });
+  window.addEventListener("mousemove", function (e) { moveCandidate(e.clientX, e.clientY); });
+  window.addEventListener("mouseup", endCandidate);
+
+  wrap.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    var link = e.target.closest(".graph-node-link");
+    if (!link) return;
+    startCandidate(link, e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  wrap.addEventListener("touchmove", function (e) {
+    if (e.touches.length !== 1) return;
+    moveCandidate(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener("touchend", endCandidate);
+
+  wrap.addEventListener("click", function (e) {
+    var link = e.target.closest(".graph-node-link");
+    if (link && justDraggedSlug && link.getAttribute("data-slug") === justDraggedSlug) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    justDraggedSlug = null;
+  }, true);
 })();
 `;
 

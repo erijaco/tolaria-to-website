@@ -324,13 +324,16 @@ export function renderIndexPage(args: {
 export function renderGraphPage(args: {
   svg: string;
   noteCount: number;
+  /** Whether static/graph-physics.min.js and static/graph-drag.js were written for this
+   * build (skipped for an empty graph) - gates whether to reference them at all. */
+  hasPhysics: boolean;
   /** Path overrides for rendering this note somewhere other than its default notes/ location. */
   backHref?: string;
   backLabel?: string;
   /** When a note has been picked as the home page, this links directly back to it. */
   homeHref?: string;
 }): string {
-  const { svg, noteCount, backHref = "index.html", backLabel = "All notes", homeHref } = args;
+  const { svg, noteCount, hasPhysics, backHref = "index.html", backLabel = "All notes", homeHref } = args;
 
   return `<!doctype html>
 <html lang="en">
@@ -364,6 +367,8 @@ export function renderGraphPage(args: {
 <script src="static/theme.js"></script>
 <script src="static/print.js"></script>
 <script src="static/site-graph.js"></script>
+${hasPhysics ? `<script src="static/graph-physics.min.js"></script>
+<script src="static/graph-drag.js"></script>` : ""}
 </body>
 </html>
 `;

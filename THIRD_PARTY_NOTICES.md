@@ -18,6 +18,18 @@ alongside it in the output too: `mermaid.LICENSE.txt` is copied into the same
 (Copyright (c) 2014 - 2022 Knut Sveidqvist); see
 https://github.com/mermaid-js/mermaid/blob/master/LICENSE.
 
+A second case of the same pattern: the site-wide graph page's drag-to-reposition
+interaction is powered by d3's force-simulation stack, vendored the same way as
+mermaid above. The build concatenates the official prebuilt browser bundles of
+`d3-quadtree`, `d3-dispatch`, `d3-timer`, and `d3-force` (in that dependency
+order, since `d3-force`'s bundle expects the other three already merged into a
+shared global) into a single `static/graph-physics.min.js` in a generated site's
+output, only when that site actually has a graph to draw. All four packages are
+published by Mike Bostock under the ISC license, and their license text is
+byte-identical across all four, so one representative copy travels alongside the
+bundle as `static/d3-force.LICENSE.txt`. See
+https://github.com/d3/d3-force/blob/main/LICENSE.
+
 ## Lucide
 
 `src/icons.ts` contains SVG path data for icons from [Lucide](https://lucide.dev).

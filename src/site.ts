@@ -16,6 +16,7 @@ import {
   THEME_JS,
   PRINT_JS,
   SITE_GRAPH_JS,
+  GRAPH_DRAG_JS,
   MERMAID_INIT_JS,
 } from "./staticAssets.js";
 import { collectSiteGraphData, layoutSiteGraph, renderSiteGraphSvg } from "./siteGraph.js";
@@ -194,13 +195,51 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
     types: index.types,
     notesPrefix: "notes/",
   });
+  const siteHasGraph = graphNodes.length > 0;
   const graphHtml = renderGraphPage({
     svg: graphSvg,
     noteCount: graphNodes.length,
+    hasPhysics: siteHasGraph,
     backHref: navFilename,
     homeHref: homeSlug ? "index.html" : undefined,
   });
   await fs.promises.writeFile(path.join(outDir, "graph.html"), graphHtml, "utf8");
+
+  if (siteHasGraph) {
+    // d3-force's own prebuilt browser bundle isn't self-contained - it expects
+    // d3-quadtree/d3-dispatch/d3-timer already merged into a shared global `d3` object,
+    // so their prebuilt bundles are concatenated in that dependency order (see
+    // THIRD_PARTY_NOTICES.md). All four packages share byte-identical ISC license text,
+    // so one representative copy travels alongside the bundle.
+    //
+    // None of the four expose their dist/ files via package.json "exports" (only a
+    // non-standard "umd" condition, which Node doesn't recognize), so import.meta.resolve
+    // can't reach them directly by subpath - instead resolve each package's actual entry
+    // (which every d3-* micro-library exports as "./src/index.js") and derive the
+    // installed package's root directory from that resolved path.
+    const physicsPackages = ["d3-quadtree", "d3-dispatch", "d3-timer", "d3-force"];
+    const packageRoot = (pkg: string): string => {
+      const entryPath = fileURLToPath(import.meta.resolve(pkg));
+      const root = entryPath.replace(/[/\\]src[/\\]index\.js$/, "");
+      if (root === entryPath) throw new Error(`Could not derive package root for ${pkg} from ${entryPath}`);
+      return root;
+    };
+    const physicsChunks = await Promise.all(
+      physicsPackages.map((pkg) =>
+        fs.promises.readFile(path.join(packageRoot(pkg), "dist", `${pkg}.min.js`), "utf8")
+      )
+    );
+    await fs.promises.writeFile(
+      path.join(outDir, "static", "graph-physics.min.js"),
+      physicsChunks.join("\n"),
+      "utf8"
+    );
+    await fse.copyFile(
+      path.join(packageRoot("d3-force"), "LICENSE"),
+      path.join(outDir, "static", "d3-force.LICENSE.txt")
+    );
+    await fs.promises.writeFile(path.join(outDir, "static", "graph-drag.js"), GRAPH_DRAG_JS, "utf8");
+  }
 
   const publishedNotes = notes.filter((n) => index.published.has(n.slug) && !n.isTypeDoc);
   const navHtml = renderIndexPage({

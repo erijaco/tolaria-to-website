@@ -8,16 +8,19 @@ by `type:` (using each type's `_icon`/`_color`/`_order`/`_sidebar_label`), rende
 per-note local graph of its direct connections, copies attachments, and generates a
 client-side search index — no server or network required to browse the output. A
 site-wide graph page (`graph.html`, linked from every page's header) lays out the whole
-vault's relationship/link structure at build time and adds pan/zoom/hover-highlight as a
-progressive enhancement — every node is a real link, so the page is fully navigable even
-with JavaScript disabled.
+vault's relationship/link structure at build time and adds pan/zoom/hover-highlight and
+Obsidian-style drag-to-reposition physics as a progressive enhancement — every node is a
+real link, so the page is fully navigable even with JavaScript disabled. Nodes with more
+incoming connections (backlinks plus relationship edges pointing at them) render larger,
+so well-connected notes stand out at a glance.
 
 Each note page also ships a print stylesheet: printing or exporting to PDF drops the
 navigation chrome, theme/ToC controls, frontmatter table, and `belongs_to`/`has`/
 `related_to` relationship sections, forces light colors regardless of the reader's theme
 choice, keeps headings attached to the content that follows them, and expands any
-collapsed callouts first. The header is replaced with a compact title + type-badge
-masthead in place of the on-screen back/home navigation.
+collapsed callouts first. The header is replaced with a `<type> / <title>` breadcrumb and
+a "Printed on" timestamp (filled in at print time), in place of the on-screen back/home
+navigation and type badge.
 
 ## Vault conventions supported
 
