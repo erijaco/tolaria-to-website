@@ -201,7 +201,7 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   -webkit-mask-size: contain;
   mask-size: contain;
 }
-.print-breadcrumb { display: none; }
+.print-breadcrumb, .print-timestamp { display: none; }
 .back-link, .home-link { color: var(--muted); text-decoration: none; }
 .back-link:hover, .home-link:hover { text-decoration: underline; }
 .home-link { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -612,6 +612,16 @@ details.frontmatter table.properties {
   }
   .print-breadcrumb-sep {
     margin: 0 0.35em;
+  }
+  .print-timestamp {
+    display: inline-block;
+    color: var(--muted);
+  }
+  .print-timestamp::before {
+    content: "Printed on:";
+    font-weight: 600;
+    color: var(--fg);
+    margin-right: 0.35em;
   }
   main, .layout, .layout main, .page-header, .page-header--wide {
     max-width: none;
@@ -1075,6 +1085,13 @@ export const PRINT_JS = `
     document.querySelectorAll("details:not([open]):not(.frontmatter)").forEach(function (d) {
       d.setAttribute("open", "");
       reopened.push(d);
+    });
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    var now = new Date();
+    var date = pad(now.getDate()) + "." + pad(now.getMonth() + 1) + "." + now.getFullYear();
+    var time = pad(now.getHours()) + "." + pad(now.getMinutes()) + "." + pad(now.getSeconds());
+    document.querySelectorAll(".print-timestamp").forEach(function (el) {
+      el.textContent = date + " " + time;
     });
   });
   window.addEventListener("afterprint", function () {

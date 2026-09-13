@@ -208,6 +208,7 @@ export function renderNotePage(args: {
     ${homeHref ? `<a class="home-link" href="${homeHref}">Home</a>` : ""}
   </nav>
   <div class="header-actions">
+    <span class="print-timestamp" aria-hidden="true"></span>
     ${badge}
     ${hasToc ? TOC_TOGGLE_BUTTON : ""}
     ${graphToggleLink(graphHref)}
