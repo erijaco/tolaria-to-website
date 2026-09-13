@@ -17,12 +17,13 @@ import {
   PRINT_JS,
   SITE_GRAPH_JS,
   GRAPH_DRAG_JS,
+  BANNER_JS,
   MERMAID_INIT_JS,
 } from "./staticAssets.js";
 import { collectSiteGraphData, layoutSiteGraph, renderSiteGraphSvg } from "./siteGraph.js";
 import { outputName, notesHref } from "./outputName.js";
 import type { Root } from "mdast";
-import type { NoteFile, VaultIndex } from "./types.js";
+import type { BannerMessage, NoteFile, VaultIndex } from "./types.js";
 
 export interface BuildOptions {
   vaultDir: string;
@@ -30,6 +31,8 @@ export interface BuildOptions {
   ignoreFile?: string;
   /** Slug, filename, or title of the note to render as the site's index.html, if any. */
   homeNote?: string;
+  /** Announcement banners shown only on the generated index.html, if any. */
+  banners?: BannerMessage[];
 }
 
 interface SearchEntry {
@@ -275,8 +278,13 @@ export async function buildSite(opts: BuildOptions): Promise<void> {
       notesPrefix: "notes/",
       hasMermaid: homeHasMermaid,
       graphHref: "graph.html",
+      banners: opts.banners,
     });
     await fs.promises.writeFile(path.join(outDir, "index.html"), homeHtml, "utf8");
+
+    if (opts.banners?.length) {
+      await fs.promises.writeFile(path.join(outDir, "static", "banner.js"), BANNER_JS, "utf8");
+    }
   }
 
   const searchJsData = `window.__TOLARIA_SEARCH__ = ${JSON.stringify(searchEntries)};\n`;

@@ -37,7 +37,9 @@ jobs:
         run: pnpm run typecheck
 
       - name: Build site
-        run: pnpm run site:build
+        env:
+          BANNER_TEXT: ${{ vars.BANNER_TEXT }}
+        run: pnpm run site:build --banner-text "$BANNER_TEXT"
 
       - name: Publish to public repo
         env:

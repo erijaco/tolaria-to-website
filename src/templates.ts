@@ -1,7 +1,7 @@
-import type { NoteFile, TypeDef, VaultIndex } from "./types.js";
+import type { BannerMessage, NoteFile, TypeDef, VaultIndex } from "./types.js";
 import { notesHref } from "./outputName.js";
 import type { HeadingEntry } from "./pipeline.js";
-import { THEME_INIT_INLINE_JS, JS_ENABLED_INLINE_JS } from "./staticAssets.js";
+import { THEME_INIT_INLINE_JS, JS_ENABLED_INLINE_JS, bannerInitInlineJs } from "./staticAssets.js";
 import { escapeHtml } from "./html.js";
 import { renderLocalGraph } from "./graph.js";
 
@@ -87,6 +87,9 @@ export function renderNotePage(args: {
   /** Whether the rendered body contains a ```mermaid fenced code block. */
   hasMermaid?: boolean;
   graphHref?: string;
+  /** Only ever populated for the single home-page render in site.ts - never for the
+   * per-note-loop render, so the banner can't leak onto notes/*.html or graph.html. */
+  banners?: BannerMessage[];
 }): string {
   const {
     note,
@@ -105,6 +108,7 @@ export function renderNotePage(args: {
     homeHref,
     hasMermaid = false,
     graphHref = "../graph.html",
+    banners,
   } = args;
 
   const propRows = Object.entries(note.frontmatter)
@@ -191,16 +195,36 @@ export function renderNotePage(args: {
 <script src="${staticHref("mermaid-init.js")}"></script>`
     : "";
 
+  const bannersHtml = banners?.length
+    ? `<div class="home-banners">${banners
+        .map((b, i) => {
+          // Same default-title-from-type idiom as callouts.ts's fallback when a callout
+          // has no custom title text.
+          const title = b.type.charAt(0).toUpperCase() + b.type.slice(1);
+          return `<div class="home-banner home-banner-${b.type}" data-banner-index="${i}" data-banner-text="${escapeHtml(b.text)}">
+        <div class="home-banner-body">
+          <p class="home-banner-title">${escapeHtml(title)}</p>
+          <p class="home-banner-text">${escapeHtml(b.text)}</p>
+        </div>
+        <button type="button" class="home-banner-dismiss" aria-label="Dismiss announcement">&times;</button>
+      </div>`;
+        })
+        .join("")}</div>`
+    : "";
+  const bannerInit = banners?.length ? bannerInitInlineJs(banners.map((b) => b.text)) : "";
+  const bannerScriptTag = banners?.length ? `<script src="${staticHref("banner.js")}"></script>` : "";
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>${THEME_INIT_INLINE_JS}${JS_ENABLED_INLINE_JS}</script>
+<script>${THEME_INIT_INLINE_JS}${JS_ENABLED_INLINE_JS}${bannerInit}</script>
 <title>${escapeHtml(note.title)}</title>
 <link rel="stylesheet" href="${cssHref}">
 </head>
 <body>
+${bannersHtml}
 <header class="page-header">
   <nav class="header-nav">
     <span class="print-breadcrumb">${printBreadcrumb}</span>
@@ -227,6 +251,7 @@ export function renderNotePage(args: {
 <script src="${themeJsHref}"></script>
 ${hasToc ? `<script src="${tocSidebarJsHref}"></script>` : ""}
 <script src="${printJsHref}"></script>
+${bannerScriptTag}
 ${mermaidScripts}
 </body>
 </html>

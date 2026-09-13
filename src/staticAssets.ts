@@ -1,4 +1,5 @@
 import { iconMaskUrl } from "./icons.js";
+import { jsonForInlineScript } from "./html.js";
 
 /**
  * Inlined into every page's <head> (not loaded as an external file) so an explicit
@@ -75,6 +76,72 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
 }
 .page-header--wide { max-width: 980px; }
 .page-header h1 { margin: 0; font-size: 1.1rem; }
+.home-banners {
+  max-width: 760px;
+  margin: 1rem auto 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.home-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--banner-color, var(--accent));
+  background: var(--banner-bg, var(--code-bg));
+}
+.home-banner-body { flex: 1 1 auto; min-width: 0; }
+.home-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--banner-color, var(--accent));
+}
+.home-banner-title::before {
+  content: "";
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.home-banner-text { margin: 0.25rem 0 0; font-size: 0.92rem; overflow-wrap: break-word; }
+.home-banner-dismiss {
+  appearance: none;
+  font-family: inherit;
+  flex-shrink: 0;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-banner-dismiss:hover { color: var(--fg); background: var(--code-bg); }
+/* Per-type coloring, same pattern as the .callout-<type> blocks below - copy this
+ * shape (color/bg pair + icon-mask override) to add more banner types later. */
+.home-banner-danger { --banner-color: #d32f2f; --banner-bg: rgba(211, 47, 47, 0.08); }
+.home-banner-danger .home-banner-title::before {
+  -webkit-mask-image: ${iconMaskUrl("danger")};
+  mask-image: ${iconMaskUrl("danger")};
+}
 .layout {
   display: flex;
   align-items: flex-start;
@@ -630,6 +697,7 @@ details.frontmatter table.properties {
     max-width: none;
   }
   .page-header { position: static; }
+  .home-banners { display: none; }
   h1, h2, h3, h4, h5, h6,
   .note-body pre,
   table.properties,
@@ -1100,6 +1168,59 @@ export const PRINT_JS = `
   window.addEventListener("afterprint", function () {
     reopened.forEach(function (d) { d.removeAttribute("open"); });
     reopened = [];
+  });
+})();
+`;
+
+/**
+ * Runs synchronously in <head>, before <body> (and so before any .home-banner element)
+ * exists, so it can't hide a dismissed banner directly - instead it injects a <style>
+ * element suppressing whichever banners (by index) are already dismissed, avoiding a
+ * flash of an already-dismissed banner before BANNER_JS's own external script runs.
+ * Genuinely N-safe (no fixed upper bound on how many banners exist).
+ */
+export function bannerInitInlineJs(texts: string[]): string {
+  return (
+    `(function(){try{` +
+    `var texts=${jsonForInlineScript(texts)};` +
+    `var dismissed=JSON.parse(localStorage.getItem("tolaria-banners-dismissed")||"[]");` +
+    `var css="";` +
+    `for(var i=0;i<texts.length;i++){if(dismissed.indexOf(texts[i])!==-1)css+='.home-banner[data-banner-index="'+i+'"]{display:none}';}` +
+    `if(css){var s=document.createElement("style");s.textContent=css;document.head.appendChild(s);}` +
+    `}catch(e){}})();`
+  );
+}
+
+/**
+ * Dismiss handling for the home page's announcement banner(s) (see templates.ts,
+ * siteGraph.ts's counterpart doesn't apply here - this is unrelated to the graph).
+ * Dismissal is keyed by each banner's own text (not an index or a flat yes/no flag) in
+ * a single shared localStorage array, so editing a banner's text later makes it
+ * reappear for everyone who dismissed the old wording, and dismissing one banner never
+ * hides an unrelated one. Also re-checks on load as a fallback for bannerInitInlineJs's
+ * <style>-injection approach, in case that ever has a gap (e.g. localStorage briefly
+ * unavailable when the inline script ran).
+ */
+export const BANNER_JS = `
+(function () {
+  var STORAGE_KEY = "tolaria-banners-dismissed";
+  function readDismissed() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function writeDismissed(list) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  var dismissed = readDismissed();
+  document.querySelectorAll(".home-banner").forEach(function (el) {
+    var text = el.getAttribute("data-banner-text") || "";
+    if (dismissed.indexOf(text) !== -1) { el.style.display = "none"; return; }
+    var btn = el.querySelector(".home-banner-dismiss");
+    if (btn) btn.addEventListener("click", function () {
+      var list = readDismissed();
+      if (list.indexOf(text) === -1) list.push(text);
+      writeDismissed(list);
+      el.style.display = "none";
+    });
   });
 })();
 `;

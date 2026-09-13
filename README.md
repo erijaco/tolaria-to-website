@@ -54,10 +54,11 @@ open _site/index.html         # or just double-click it; no server needed
 
 Run `pnpm run site:build` with no flags in an interactive terminal and it will prompt
 for the source vault folder, the destination folder, and (optionally) a note to use as
-the home page — nothing to memorize for a one-off run.
+the home page and a dismissible announcement banner for it — nothing to memorize for a
+one-off run.
 
 Options (skip the prompts by passing flags, e.g. in scripts or CI):
-`pnpm run site:build --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile --home "Note Name"`.
+`pnpm run site:build --vault path/to/vault --out path/to/dist --ignore-file path/to/ignorefile --home "Note Name" --banner-text "Message"`.
 Don't put a bare `--` before the flags — pnpm (unlike npm) forwards it through literally to
 the underlying command, and commander then treats it as "end of options" and silently
 ignores every flag after it, falling back to the defaults instead of erroring.
@@ -65,6 +66,11 @@ ignores every flag after it, falling back to the defaults instead of erroring.
 - `--home <note>`: slug, filename, or title of a note to render as the site's
   `index.html`, in place of the auto-generated nav/search page (which then moves to
   `notes.html`, linked from the home page's header).
+- `--banner-text <text>` / `--no-banner`: shows a dismissible announcement banner above
+  the header, only on the home page (requires `--home`). A visitor who dismisses it won't
+  see it again on that browser unless the text changes, at which point it reappears —
+  dismissal is tracked by the message's own content, not a flat yes/no flag. Passing
+  `--banner-text` alone implies the banner is enabled; `--no-banner` always wins over it.
 
 ## CI/CD: publishing to a separate public repo (optional)
 
@@ -92,6 +98,10 @@ Setup:
    - Add secret `PUBLIC_REPO_TOKEN`: a fine-grained GitHub PAT scoped to **only** that
      public repo, with `Contents: Read and write` permission.
    - Add variable `PUBLIC_REPO`: `owner/repo-name` of the destination repo.
+   - Optionally add variable `BANNER_TEXT` to show a dismissible announcement banner on
+     the home page — edit it any time from this same Settings page, no code change or
+     redeploy trigger needed beyond the next scheduled/pushed build. Leave it unset (or
+     empty) for no banner.
 3. In the public repo, enable **GitHub Pages** from the `main` branch (root) if you want
    it hosted, not just mirrored.
 4. Push to `main` here (or run the workflow manually) to publish.

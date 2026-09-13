@@ -1,5 +1,14 @@
+import type { IconName } from "./icons.js";
+
 export interface Frontmatter {
   [key: string]: unknown;
+}
+
+export interface BannerMessage {
+  /** Reuses the same icon keys as callouts, e.g. "danger". */
+  type: IconName;
+  /** Guaranteed non-empty/trimmed by the time this exists (see cli.ts). */
+  text: string;
 }
 
 export interface NoteFile {
