@@ -8,7 +8,7 @@ const program = new Command();
 
 /** No --banner-type flag exists yet (out of scope for now) - every CLI/prompt-configured
  * banner uses this type until that changes. */
-const DEFAULT_BANNER_TYPE: BannerMessage["type"] = "danger";
+const DEFAULT_BANNER_TYPE: BannerMessage["type"] = "info";
 
 program
   .name("tolaria-to-website")

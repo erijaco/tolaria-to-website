@@ -142,6 +142,11 @@ main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
   -webkit-mask-image: ${iconMaskUrl("danger")};
   mask-image: ${iconMaskUrl("danger")};
 }
+.home-banner-info { --banner-color: #2196f3; --banner-bg: rgba(33, 150, 243, 0.08); }
+.home-banner-info .home-banner-title::before {
+  -webkit-mask-image: ${iconMaskUrl("info")};
+  mask-image: ${iconMaskUrl("info")};
+}
 .layout {
   display: flex;
   align-items: flex-start;
