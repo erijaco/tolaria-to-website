@@ -17,6 +17,7 @@
   "scripts": {
     "preinstall": "node scripts/verify-pnpm.mjs",
     "site:build": "tsx src/cli.ts build",
+    "site:build:demo": "tsx src/cli.ts build --home \"Acme Initiative\" --banner-text \"This site is generated from a sample vault - see the Style Guide note for how each element renders.\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -52,6 +52,10 @@ pnpm run site:build           # vault/ -> _site/
 open _site/index.html         # or just double-click it; no server needed
 ```
 
+To see the sample vault with a home page and its announcement banner both set,
+without typing flags: `pnpm run site:build:demo` (uses "Acme Initiative" as the
+home page and a sample banner message — see `package.json` for the exact command).
+
 Run `pnpm run site:build` with no flags in an interactive terminal and it will prompt
 for the source vault folder, the destination folder, and (optionally) a note to use as
 the home page and a dismissible announcement banner for it — nothing to memorize for a
