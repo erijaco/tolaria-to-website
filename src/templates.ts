@@ -184,6 +184,9 @@ export function renderNotePage(args: {
       }>${escapeHtml(typeDef.sidebarLabel ?? typeDef.name)}</span>`
     : "";
 
+  const organizedBadge =
+    note.frontmatter._organized === true ? `<span class="organized-badge">Up-to-date</span>` : "";
+
   /** Derives another static/ asset's href from cssHref's own (which already accounts
    * for how deep the current page sits relative to static/). */
   const staticHref = (filename: string) => cssHref.replace(/style\.css$/, filename);
@@ -233,6 +236,7 @@ ${bannersHtml}
   </nav>
   <div class="header-actions">
     <span class="print-timestamp" aria-hidden="true"></span>
+    ${organizedBadge}
     ${badge}
     ${hasToc ? TOC_TOGGLE_BUTTON : ""}
     ${graphToggleLink(graphHref)}

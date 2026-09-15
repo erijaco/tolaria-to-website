@@ -303,6 +303,32 @@ a { color: var(--accent); }
   border: 1px solid var(--type-color, var(--border));
   color: var(--type-color, var(--muted));
 }
+.organized-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #43a047;
+  color: #43a047;
+}
+.organized-badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: ${iconMaskUrl("success")};
+  mask-image: ${iconMaskUrl("success")};
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 table.properties { border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
 table.properties th, table.properties td {
   text-align: left;
@@ -670,7 +696,7 @@ details.frontmatter table.properties {
   }
   .theme-toggle, #toc-toggle, .toc-sidebar, .search-box, .sidebar, .local-graph,
   .graph-toggle, .site-graph, .graph-controls,
-  .back-link, .home-link, .type-badge,
+  .back-link, .home-link, .type-badge, .organized-badge,
   details.frontmatter,
   section.relation-group[data-field="belongs_to"],
   section.relation-group[data-field="has"],
